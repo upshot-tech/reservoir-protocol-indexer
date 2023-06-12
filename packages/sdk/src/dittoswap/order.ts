@@ -21,12 +21,14 @@ const normalize = (order: Types.OrderParams): Types.OrderParams => {
   // - convert bignumbers to strings where needed
   // - convert strings to numbers where needed
   // - lowercase all strings
-
   return {
-    pair: lc(order.pair),
-    tokenId: order.tokenId ? s(order.tokenId) : undefined,
-    extra: {
-      prices: order.extra.prices.map(s),
-    },
+    pool: lc(order.pool),
+    nftIds: order.nftIds.map(s),
+    lpIds: order.lpIds ? order.lpIds.map(s) : [],
+    permitterData: order.permitterData ? s(order.permitterData) : [],
+    swapData: s(order.swapData),
+    inputAmount: order.inputAmount ? s(order.inputAmount) : [],
+    minOutputAmount: order.minOutputAmount ? s(order.minOutputAmount) : [],
+    deadline: s(order.deadline),
   };
 };
