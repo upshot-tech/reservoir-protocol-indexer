@@ -3,9 +3,9 @@ import { lc, s } from "../utils";
 
 export class Order {
   public chainId: number;
-  public params: Types.OrderParams;
+  public params: Types.BuyOrderParams;
 
-  constructor(chainId: number, params: Types.OrderParams) {
+  constructor(chainId: number, params: Types.BuyOrderParams) {
     this.chainId = chainId;
 
     try {
@@ -16,19 +16,16 @@ export class Order {
   }
 }
 
-const normalize = (order: Types.OrderParams): Types.OrderParams => {
+const normalize = (order: Types.BuyOrderParams): Types.BuyOrderParams => {
   // Perform some normalization operations on the order:
   // - convert bignumbers to strings where needed
   // - convert strings to numbers where needed
   // - lowercase all strings
   return {
-    pool: lc(order.pool),
-    nftIds: order.nftIds.map(s),
-    lpIds: order.lpIds ? order.lpIds.map(s) : [],
-    permitterData: order.permitterData ? s(order.permitterData) : [],
-    swapData: s(order.swapData),
-    inputAmount: order.inputAmount ? s(order.inputAmount) : [],
-    minOutputAmount: order.minOutputAmount ? s(order.minOutputAmount) : [],
-    deadline: s(order.deadline),
+    swapList: order.swapList.map((swap) => { return { pool: s(swap.pool), nftIds: swap.nftIds, swapData: s(swap.swapData) }}),
+    inputAmount: s(order.inputAmount),
+    tokenSender: s(order.tokenSender),
+    nftRecipient: s(order.nftRecipient),
+    deadline: s(order.deadline)
   };
 };

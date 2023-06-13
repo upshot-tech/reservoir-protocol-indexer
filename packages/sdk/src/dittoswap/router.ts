@@ -20,50 +20,13 @@ export class Router {
     this.contract = new Contract(Addresses.DittoPoolRouterRoyalties[this.chainId], RouterAbi);
   }
 
-  // --- TRADING NFTs FOR ERC20
-
-  public async fillSellOrder(
-    taker: Signer,
-    order: Order,
-  ): Promise<ContractTransaction> {
-    const tx = this.fillSellOrderTx(await taker.getAddress(), order);
-    return taker.sendTransaction(tx);
-  }
-
-  public fillSellOrderTx(
-    taker: string,
-    order: Order,
-  ): TxData {
-    return {
-      from: taker,
-      to: this.contract.address,
-      data:
-        this.contract.interface.encodeFunctionData(
-          "swapNFTsForTokens", [
-          [
-            [
-              order.params.pool,
-              order.params.nftIds,
-              order.params.lpIds!,
-              order.params.permitterData!,
-              order.params.swapData
-            ],
-            order.params.minOutputAmount!,
-            taker,
-            order.params.deadline
-          ]
-        ]
-      )
-    }
-  };
-
   // --- TRADING ERC20 TOKENS FOR NFTs
   
   public async fillBuyOrder(
     taker: Signer,
     order: Order,
   ): Promise<ContractTransaction> {
-    const tx = this.fillSellOrderTx(await taker.getAddress(), order);
+    const tx = this.fillBuyOrderTx(await taker.getAddress(), order);
     return taker.sendTransaction(tx);
   }
 
@@ -77,16 +40,11 @@ export class Router {
       data:
         this.contract.interface.encodeFunctionData(
           "swapTokensForNfts", [
-          [
-            [
-              order.params.pool,
-              order.params.nftIds,
-              order.params.swapData
-            ],
-            order.params.inputAmount!,
-            taker,
-            order.params.deadline
-          ]
+            order.params.swapList,
+            order.params.inputAmount,
+            order.params.tokenSender,
+            order.params.nftRecipient,
+            order.params.inputAmount,
         ]
       )
     }
