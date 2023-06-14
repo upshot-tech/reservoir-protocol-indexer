@@ -23,9 +23,6 @@ describe("Dittoswap - Order", () => {
   afterEach(reset);
 
   it("Check normalized order", async () => {
-    const buyer = alice;
-
-    const price = parseEther("1");
 
   });
 });
