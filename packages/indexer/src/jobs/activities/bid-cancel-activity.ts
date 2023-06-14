@@ -8,6 +8,10 @@ import {
 } from "@/jobs/activities/utils";
 import { UserActivitiesEntityInsertParams } from "@/models/user-activities/user-activities-entity";
 import { UserActivities } from "@/models/user-activities";
+import { config } from "@/config/index";
+
+import * as ActivitiesIndex from "@/elasticsearch/indexes/activities";
+import { BidCancelledEventHandler } from "@/elasticsearch/indexes/activities/event-handlers/bid-cancelled";
 
 export class BidCancelActivity {
   public static async handleEvent(data: BuyOrderCancelledEventData) {
@@ -18,7 +22,7 @@ export class BidCancelActivity {
       activityHash = getActivityHash(
         data.transactionHash,
         data.logIndex.toString(),
-        data.batchIndex.toString()
+        data.batchIndex ? data.batchIndex.toString() : ""
       );
     } else {
       activityHash = getActivityHash(ActivityType.bid_cancel, data.orderId);
@@ -55,12 +59,25 @@ export class BidCancelActivity {
       Activities.addActivities([activity]),
       UserActivities.addActivities([fromUserActivity]),
     ]);
+
+    if (config.doElasticsearchWork) {
+      const eventHandler = new BidCancelledEventHandler(
+        data.orderId,
+        data.transactionHash,
+        data.logIndex,
+        data.batchIndex
+      );
+      const activity = await eventHandler.generateActivity();
+
+      await ActivitiesIndex.save([activity]);
+    }
   }
 
   public static async handleEvents(events: BuyOrderCancelledEventData[]) {
     const bidInfo = await getBidInfoByOrderIds(_.map(events, (e) => e.orderId));
     const activities = [];
     const userActivities = [];
+    const esActivities = [];
 
     for (const data of events) {
       let activityHash;
@@ -103,6 +120,18 @@ export class BidCancelActivity {
 
       activities.push(activity);
       userActivities.push(fromUserActivity);
+
+      if (config.doElasticsearchWork) {
+        const eventHandler = new BidCancelledEventHandler(
+          data.orderId,
+          data.transactionHash,
+          data.logIndex,
+          data.batchIndex
+        );
+        const esActivity = await eventHandler.generateActivity();
+
+        esActivities.push(esActivity);
+      }
     }
 
     // Insert activities in batch
@@ -110,6 +139,10 @@ export class BidCancelActivity {
       Activities.addActivities(activities),
       UserActivities.addActivities(userActivities),
     ]);
+
+    if (esActivities.length) {
+      await ActivitiesIndex.save(esActivities, false);
+    }
   }
 }
 

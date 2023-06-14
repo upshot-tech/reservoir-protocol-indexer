@@ -219,7 +219,8 @@ export const getExecuteSellV6Options: RouteOptions = {
                 orders.currency,
                 orders.missing_royalties,
                 orders.maker,
-                orders.token_set_id
+                orders.token_set_id,
+                orders.fee_bps
               FROM orders
               JOIN contracts
                 ON orders.contract = contracts.address
@@ -264,7 +265,8 @@ export const getExecuteSellV6Options: RouteOptions = {
                 orders.currency,
                 orders.missing_royalties,
                 orders.maker,
-                orders.token_set_id
+                orders.token_set_id,
+                orders.fee_bps
               FROM orders
               JOIN contracts
                 ON orders.contract = contracts.address
@@ -380,6 +382,7 @@ export const getExecuteSellV6Options: RouteOptions = {
           rawData: orderResult.raw_data,
           source: source || undefined,
           fees,
+          builtInFeeBps: orderResult.fee_bps,
           isProtected:
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (orderResult.raw_data as any).zone ===
@@ -750,14 +753,14 @@ export const getExecuteSellV6Options: RouteOptions = {
 
       const executionsBuffer = new ExecutionsBuffer();
       for (const item of path) {
-        const calldata = txs.find((tx) => tx.orderIds.includes(item.orderId))?.txData.data;
+        const txData = txs.find((tx) => tx.orderIds.includes(item.orderId))?.txData;
 
         let orderId = item.orderId;
-        if (calldata && item.source === "blur.io") {
+        if (txData && item.source === "blur.io") {
           // Blur bids don't have the correct order id so we have to override it
           const orders = await new Sdk.Blur.Exchange(config.chainId).getMatchedOrdersFromCalldata(
             baseProvider,
-            calldata
+            txData!.data
           );
 
           const index = orders.findIndex(
@@ -775,7 +778,7 @@ export const getExecuteSellV6Options: RouteOptions = {
           user: payload.taker,
           orderId,
           quantity: item.quantity,
-          calldata,
+          ...txData,
         });
       }
       await executionsBuffer.flush();

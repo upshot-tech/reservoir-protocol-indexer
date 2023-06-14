@@ -15,6 +15,7 @@ import { bn, now, toBuffer } from "@/common/utils";
 import { config } from "@/config/index";
 import { getNetworkSettings } from "@/config/network";
 import { allPlatformFeeRecipients } from "@/events-sync/handlers/royalties/config";
+import { addPendingData } from "@/jobs/arweave-relay";
 import { Collections } from "@/models/collections";
 import { Sources } from "@/models/sources";
 import { SourcesEntity } from "@/models/sources/sources-entity";
@@ -67,7 +68,8 @@ type SaveResult = {
 export const save = async (
   orderInfos: OrderInfo[],
   validateBidValue?: boolean,
-  ingestMethod?: "websocket" | "rest"
+  ingestMethod?: "websocket" | "rest",
+  ingestDelay?: number
 ): Promise<SaveResult[]> => {
   const results: SaveResult[] = [];
   const orderValues: DbOrder[] = [];
@@ -161,6 +163,8 @@ export const save = async (
               kind: "seaport-v1.5",
               info: { orderParams, metadata, isReservoir, isOpenSea, openSeaOrderParams },
               validateBidValue,
+              ingestMethod,
+              ingestDelay: startTime - currentTime + 5,
             },
           ],
           false,
@@ -443,7 +447,7 @@ export const save = async (
       let feeAmount = order.getFeeAmount();
 
       // Handle: price and value
-      let price = bn(order.getMatchingPrice());
+      let price = bn(order.getMatchingPrice(Math.max(now(), startTime)));
       let value = price;
       if (info.side === "buy") {
         // For buy orders, we set the value as `price - fee` since it
@@ -650,6 +654,17 @@ export const save = async (
             Number(tokenId)
           );
 
+          logger.debug(
+            "orders-seaport-v1.5-save",
+            JSON.stringify({
+              topic: "validateBidValue",
+              collectionTopBidValue,
+              contract: info.contract,
+              tokenId,
+              value: value.toString(),
+            })
+          );
+
           if (collectionTopBidValue) {
             if (Number(value.toString()) <= collectionTopBidValue) {
               return results.push({
@@ -775,6 +790,15 @@ export const save = async (
         status: "success",
         unfillable,
       });
+
+      if (!unfillable && isReservoir) {
+        await addPendingData([
+          JSON.stringify({
+            kind: "seaport-v1.5",
+            data: order.params,
+          }),
+        ]);
+      }
     } catch (error) {
       logger.warn(
         "orders-seaport-v1.5-save",
@@ -861,6 +885,7 @@ export const save = async (
                 kind: "new-order",
               },
               ingestMethod,
+              ingestDelay,
             } as ordersUpdateById.OrderInfo)
         )
     );

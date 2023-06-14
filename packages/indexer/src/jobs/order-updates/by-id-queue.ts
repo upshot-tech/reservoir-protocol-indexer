@@ -12,18 +12,17 @@ import { TriggerKind } from "@/jobs/order-updates/types";
 import { Sources } from "@/models/sources";
 
 import * as processActivityEvent from "@/jobs/activities/process-activity-event";
-import * as tokenSetUpdatesTopBid from "@/jobs/token-set-updates/top-bid-queue";
 // import * as tokenSetUpdatesTopBidSingleToken from "@/jobs/token-set-updates/top-bid-single-token-queue";
 
 import * as updateNftBalanceFloorAskPriceQueue from "@/jobs/nft-balance-updates/update-floor-ask-price-queue";
-import * as tokenUpdatesFloorAsk from "@/jobs/token-updates/floor-queue";
-import * as tokenUpdatesNormalizedFloorAsk from "@/jobs/token-updates/normalized-floor-queue";
-
 import {
   WebsocketEventKind,
   WebsocketEventRouter,
 } from "@/jobs/websocket-events/websocket-event-router";
 import { BidEventsList } from "@/models/bid-events-list";
+import { normalizedFloorQueueJob } from "@/jobs/token-updates/normalized-floor-queue-job";
+import { tokenFloorQueueJob } from "@/jobs/token-updates/token-floor-queue-job";
+import { topBidQueueJob } from "@/jobs/token-set-updates/top-bid-queue-job";
 
 const QUEUE_NAME = "order-updates-by-id";
 
@@ -49,7 +48,7 @@ if (config.doBackgroundWork) {
   worker = new Worker(
     QUEUE_NAME,
     async (job: Job) => {
-      const { id, trigger, ingestMethod } = job.data as OrderInfo;
+      const { id, trigger, ingestMethod, ingestDelay } = job.data as OrderInfo;
       let { side, tokenSetId } = job.data as OrderInfo;
 
       try {
@@ -107,7 +106,7 @@ if (config.doBackgroundWork) {
             if (tokenSetId.startsWith("token")) {
               // await tokenSetUpdatesTopBidSingleToken.addToQueue([topBidInfo]);
             } else {
-              await tokenSetUpdatesTopBid.addToQueue([topBidInfo]);
+              await topBidQueueJob.addToQueue([topBidInfo]);
             }
           }
 
@@ -121,8 +120,8 @@ if (config.doBackgroundWork) {
             };
 
             await Promise.all([
-              tokenUpdatesFloorAsk.addToQueue([floorAskInfo]),
-              tokenUpdatesNormalizedFloorAsk.addToQueue([floorAskInfo]),
+              tokenFloorQueueJob.addToQueue([floorAskInfo]),
+              normalizedFloorQueueJob.addToQueue([floorAskInfo]),
             ]);
           }
 
@@ -163,6 +162,7 @@ if (config.doBackgroundWork) {
                         WHEN $/fillabilityStatus/ = 'expired' THEN 'expired'
                         WHEN $/fillabilityStatus/ = 'no-balance' THEN 'inactive'
                         WHEN $/approvalStatus/ = 'no-approval' THEN 'inactive'
+                        WHEN $/approvalStatus/ = 'disabled' THEN 'inactive'
                         ELSE 'active'
                       END
                     )::order_event_status_t,
@@ -301,14 +301,18 @@ if (config.doBackgroundWork) {
               ]);
             }
 
-            await WebsocketEventRouter({
-              eventInfo: {
-                kind: trigger.kind,
-                orderId: order.id,
-              },
-              eventKind:
-                order.side === "sell" ? WebsocketEventKind.SellOrder : WebsocketEventKind.BuyOrder,
-            });
+            if (config.doOldOrderWebsocketWork) {
+              await WebsocketEventRouter({
+                eventInfo: {
+                  kind: trigger.kind,
+                  orderId: order.id,
+                },
+                eventKind:
+                  order.side === "sell"
+                    ? WebsocketEventKind.SellOrder
+                    : WebsocketEventKind.BuyOrder,
+              });
+            }
           }
         }
 
@@ -333,7 +337,7 @@ if (config.doBackgroundWork) {
               logger.info(
                 "order-latency",
                 JSON.stringify({
-                  latency: orderCreated - orderStart,
+                  latency: orderCreated - orderStart - Number(ingestDelay ?? 0),
                   source: source?.getTitle(),
                   orderId: order.id,
                   orderKind: order.kind,
@@ -344,6 +348,7 @@ if (config.doBackgroundWork) {
                     ? new Date(order.originatedAt).toISOString()
                     : null,
                   ingestMethod: ingestMethod ?? "rest",
+                  ingestDelay,
                 })
               );
             }
@@ -396,6 +401,7 @@ export type OrderInfo = {
   tokenSetId?: string;
   side?: "sell" | "buy";
   ingestMethod?: "websocket" | "rest";
+  ingestDelay?: number;
 };
 
 export const addToQueue = async (orderInfos: OrderInfo[]) => {

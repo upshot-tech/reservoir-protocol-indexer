@@ -27,6 +27,7 @@ type Marketplace = {
   orderKind: string | null;
   listingEnabled: boolean;
   customFeesSupported: boolean;
+  collectionBidSupported?: boolean;
   minimumBidExpiry?: number;
   minimumPrecision?: string;
   supportedBidCurrencies: string[];
@@ -63,7 +64,7 @@ export const getCollectionSupportedMarketplacesV1Options: RouteOptions = {
           imageUrl: Joi.string(),
           fee: Joi.object({
             bps: Joi.number(),
-          }),
+          }).description("Marketplace Fee"),
           royalties: Joi.object({
             minBps: Joi.number(),
             maxBps: Joi.number(),
@@ -74,7 +75,10 @@ export const getCollectionSupportedMarketplacesV1Options: RouteOptions = {
           customFeesSupported: Joi.boolean(),
           minimumBidExpiry: Joi.number(),
           minimumPrecision: Joi.string(),
-          supportedBidCurrencies: Joi.array().items(Joi.string()),
+          collectionBidSupported: Joi.boolean(),
+          supportedBidCurrencies: Joi.array()
+            .items(Joi.string())
+            .description("erc20 contract addresses"),
         })
       ),
     }),
@@ -89,7 +93,8 @@ export const getCollectionSupportedMarketplacesV1Options: RouteOptions = {
             collections.royalties,
             collections.new_royalties,
             collections.marketplace_fees,
-            collections.contract
+            collections.contract,
+            collections.token_count
           FROM collections
           JOIN contracts
             ON collections.contract = contracts.address
@@ -151,9 +156,10 @@ export const getCollectionSupportedMarketplacesV1Options: RouteOptions = {
             maxBps: royalties.map((r) => r.bps).reduce((a, b) => a + b, 0),
           },
           orderbook: "reservoir",
-          orderKind: "seaport-v1.4",
+          orderKind: "seaport-v1.5",
           listingEnabled: true,
           customFeesSupported: true,
+          collectionBidSupported: Number(collectionResult.token_count) <= config.maxTokenSetSize,
           supportedBidCurrencies: Object.keys(ns.supportedBidCurrencies),
         });
       }
@@ -191,7 +197,7 @@ export const getCollectionSupportedMarketplacesV1Options: RouteOptions = {
               }
             : undefined,
           orderbook: "opensea",
-          orderKind: "seaport-v1.4",
+          orderKind: "seaport-v1.5",
           listingEnabled: false,
           customFeesSupported: false,
           minimumBidExpiry: 15 * 60,

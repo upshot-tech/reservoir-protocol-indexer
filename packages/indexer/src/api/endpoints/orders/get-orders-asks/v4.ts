@@ -26,7 +26,7 @@ const version = "v4";
 export const getOrdersAsksV4Options: RouteOptions = {
   description: "Asks (listings)",
   notes:
-    "Get a list of asks (listings), filtered by token, collection or maker. This API is designed for efficiently ingesting large volumes of orders, for external processing",
+    "Get a list of asks (listings), filtered by token, collection or maker. This API is designed for efficiently ingesting large volumes of orders, for external processing.\n\n Please mark `excludeEOA` as `true` to exclude Blur orders.",
   tags: ["api", "Orders"],
   plugins: {
     "hapi-swagger": {
@@ -162,7 +162,9 @@ export const getOrdersAsksV4Options: RouteOptions = {
   },
   response: {
     schema: Joi.object({
-      orders: Joi.array().items(JoiOrder),
+      orders: Joi.array()
+        .items(JoiOrder)
+        .description("`taker` will have wallet address if private listing."),
       continuation: Joi.string().pattern(regex.base64).allow(null),
     }).label(`getOrdersAsks${version.toUpperCase()}Response`),
     failAction: (_request, _h, error) => {
@@ -222,6 +224,7 @@ export const getOrdersAsksV4Options: RouteOptions = {
               WHEN orders.fillability_status = 'expired' THEN 'expired'
               WHEN orders.fillability_status = 'no-balance' THEN 'inactive'
               WHEN orders.approval_status = 'no-approval' THEN 'inactive'
+              WHEN orders.approval_status = 'disabled' THEN 'inactive'
               ELSE 'active'
             END
           ) AS status,

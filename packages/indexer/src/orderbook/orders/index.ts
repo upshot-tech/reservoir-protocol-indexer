@@ -21,6 +21,8 @@ export * as nftx from "@/orderbook/orders/nftx";
 export * as manifold from "@/orderbook/orders/manifold";
 export * as superrare from "@/orderbook/orders/superrare";
 export * as looksRareV2 from "@/orderbook/orders/looks-rare-v2";
+export * as collectionxyz from "@/orderbook/orders/collectionxyz";
+export * as sudoswapV2 from "@/orderbook/orders/sudoswap-v2";
 
 // Imports
 
@@ -72,7 +74,10 @@ export type OrderKind =
   | "zeroex-v2"
   | "zeroex-v3"
   | "treasure"
-  | "looks-rare-v2";
+  | "looks-rare-v2"
+  | "blend"
+  | "collectionxyz"
+  | "sudoswap-v2";
 
 // In case we don't have the source of an order readily available, we use
 // a default value where possible (since very often the exchange protocol
@@ -149,12 +154,14 @@ export const getOrderSourceByOrderKind = async (
       case "cryptopunks":
         return sources.getOrInsert("cryptopunks.app");
       case "sudoswap":
+      case "sudoswap-v2":
         return sources.getOrInsert("sudoswap.xyz");
       case "universe":
         return sources.getOrInsert("universe.xyz");
       case "nftx":
         return sources.getOrInsert("nftx.io");
       case "blur":
+      case "blend":
         return sources.getOrInsert("blur.io");
       case "flow":
         return sources.getOrInsert("flow.so");
@@ -174,7 +181,8 @@ export const getOrderSourceByOrderKind = async (
         return sources.getOrInsert("superrare.com");
       case "alienswap":
         return sources.getOrInsert("alienswap.xyz");
-
+      case "collectionxyz":
+        return sources.getOrInsert("collection.xyz");
       case "mint": {
         if (address && mintsSources.has(address)) {
           return sources.getOrInsert(mintsSources.get(address)!);
@@ -225,10 +233,7 @@ export const generateListingDetailsV6 = (
       return {
         kind: "blur",
         ...common,
-        // To support Blur partial data filling
-        order: order.rawData.salt
-          ? new Sdk.Blur.Order(config.chainId, order.rawData)
-          : order.rawData,
+        order: order.rawData,
       };
     }
 
@@ -291,28 +296,18 @@ export const generateListingDetailsV6 = (
     }
 
     case "seaport-v1.4": {
-      if (order.rawData && !order.rawData.partial) {
-        return {
-          kind: "seaport-v1.4",
-          ...common,
-          order: new Sdk.SeaportV14.Order(config.chainId, order.rawData),
-        };
-      } else {
-        // Sorry for all the below `any` types
-        return {
-          kind: "seaport-v1.4-partial" as any,
-          ...common,
-          order: {
-            contract: token.contract,
-            tokenId: token.tokenId,
-            id: order.id,
-          } as any,
-        };
-      }
+      return {
+        kind: "seaport-v1.4",
+        ...common,
+        order: new Sdk.SeaportV14.Order(config.chainId, order.rawData),
+      };
     }
 
     case "seaport-v1.5": {
       if (order.rawData && !order.rawData.partial) {
+        // Make sure on-chain orders have a "defined" signature
+        order.rawData.signature = order.rawData.signature ?? "0x";
+
         return {
           kind: "seaport-v1.5",
           ...common,
@@ -413,6 +408,22 @@ export const generateListingDetailsV6 = (
       };
     }
 
+    case "collectionxyz": {
+      return {
+        kind: "collectionxyz",
+        ...common,
+        order: new Sdk.CollectionXyz.Order(config.chainId, order.rawData),
+      };
+    }
+
+    case "sudoswap-v2": {
+      return {
+        kind: "sudoswap-v2",
+        ...common,
+        order: new Sdk.SudoswapV2.Order(config.chainId, order.rawData),
+      };
+    }
+
     default: {
       throw new Error("Unsupported order kind");
     }
@@ -428,6 +439,7 @@ export const generateBidDetailsV6 = async (
     rawData: any;
     source?: string;
     fees?: Sdk.RouterV6.Types.Fee[];
+    builtInFeeBps?: number;
     isProtected?: boolean;
   },
   token: {
@@ -486,50 +498,36 @@ export const generateBidDetailsV6 = async (
     }
 
     case "seaport-v1.4": {
-      if (order.rawData && !order.rawData.partial) {
-        const extraArgs: any = {};
+      const extraArgs: any = {};
 
-        const sdkOrder = new Sdk.SeaportV14.Order(config.chainId, order.rawData);
-        if (sdkOrder.params.kind?.includes("token-list")) {
-          // When filling a "token-list" order, we also need to pass in the
-          // full list of tokens the order was made on (in order to be able
-          // to generate a valid merkle proof)
-          const tokens = await idb.manyOrNone(
-            `
+      const sdkOrder = new Sdk.SeaportV14.Order(config.chainId, order.rawData);
+      if (sdkOrder.params.kind?.includes("token-list")) {
+        // When filling a "token-list" order, we also need to pass in the
+        // full list of tokens the order was made on (in order to be able
+        // to generate a valid merkle proof)
+        const tokens = await idb.manyOrNone(
+          `
+            SELECT
+              token_sets_tokens.token_id
+            FROM token_sets_tokens
+            WHERE token_sets_tokens.token_set_id = (
               SELECT
-                token_sets_tokens.token_id
-              FROM token_sets_tokens
-              WHERE token_sets_tokens.token_set_id = (
-                SELECT
-                  orders.token_set_id
-                FROM orders
-                WHERE orders.id = $/id/
-              )
-            `,
-            { id: sdkOrder.hash() }
-          );
-          extraArgs.tokenIds = tokens.map(({ token_id }) => token_id);
-        }
-
-        return {
-          kind: "seaport-v1.4",
-          ...common,
-          extraArgs,
-          order: sdkOrder,
-        };
-      } else {
-        // Sorry for all the below `any` types
-        return {
-          kind: "seaport-v1.4-partial" as any,
-          ...common,
-          order: {
-            contract: token.contract,
-            tokenId: token.tokenId,
-            id: order.id,
-            unitPrice: order.unitPrice,
-          } as any,
-        };
+                orders.token_set_id
+              FROM orders
+              WHERE orders.id = $/id/
+            )
+          `,
+          { id: sdkOrder.hash() }
+        );
+        extraArgs.tokenIds = tokens.map(({ token_id }) => token_id);
       }
+
+      return {
+        kind: "seaport-v1.4",
+        ...common,
+        extraArgs,
+        order: sdkOrder,
+      };
     }
 
     case "seaport-v1.5": {
@@ -537,6 +535,10 @@ export const generateBidDetailsV6 = async (
         const extraArgs: any = {};
 
         const sdkOrder = new Sdk.SeaportV15.Order(config.chainId, order.rawData);
+
+        // Make sure on-chain orders have a "defined" signature
+        sdkOrder.params.signature = sdkOrder.params.signature ?? "0x";
+
         if (sdkOrder.params.kind?.includes("token-list")) {
           // When filling a "token-list" order, we also need to pass in the
           // full list of tokens the order was made on (in order to be able
@@ -705,6 +707,47 @@ export const generateBidDetailsV6 = async (
       const sdkOrder = new Sdk.LooksRareV2.Order(config.chainId, order.rawData);
       return {
         kind: "looks-rare-v2",
+        ...common,
+        order: sdkOrder,
+      };
+    }
+
+    case "collectionxyz": {
+      const extraArgs: any = {};
+      const sdkOrder = new Sdk.CollectionXyz.Order(config.chainId, order.rawData);
+
+      if (order.rawData.tokenSetId !== undefined) {
+        // When selling to a filtered pool, we also need to pass in the full
+        // list of tokens accepted by the pool (in order to be able to generate
+        // a valid merkle proof)
+        const tokens = await idb.manyOrNone(
+          `
+            SELECT
+              token_sets_tokens.token_id
+            FROM token_sets_tokens
+            WHERE token_sets_tokens.token_set_id = $/id/
+          `,
+          { id: sdkOrder.params.tokenSetId }
+        );
+        extraArgs.tokenIds = tokens.map(({ token_id }) => token_id);
+      }
+
+      if (order.builtInFeeBps) {
+        extraArgs.totalFeeBps = order.builtInFeeBps;
+      }
+
+      return {
+        kind: "collectionxyz",
+        ...common,
+        extraArgs,
+        order: sdkOrder,
+      };
+    }
+
+    case "sudoswap-v2": {
+      const sdkOrder = new Sdk.SudoswapV2.Order(config.chainId, order.rawData);
+      return {
+        kind: "sudoswap-v2",
         ...common,
         order: sdkOrder,
       };

@@ -13,6 +13,7 @@ import { baseProvider } from "@/common/provider";
 import { now, regex } from "@/common/utils";
 import { config } from "@/config/index";
 import * as commonHelpers from "@/orderbook/orders/common/helpers";
+import { getExecuteError } from "@/orderbook/orders/errors";
 import * as b from "@/utils/auth/blur";
 import { ExecutionsBuffer } from "@/utils/executions";
 
@@ -178,14 +179,20 @@ export const getExecuteListV5Options: RouteOptions = {
     schema: Joi.object({
       steps: Joi.array().items(
         Joi.object({
-          id: Joi.string().required(),
-          kind: Joi.string().valid("request", "signature", "transaction").required(),
+          id: Joi.string().required().description("Returns `nft-approval` or `order-signature`"),
+          kind: Joi.string()
+            .valid("request", "signature", "transaction")
+            .required()
+            .description("Returns `request`, `signature`, or `transaction`."),
           action: Joi.string().required(),
           description: Joi.string().required(),
           items: Joi.array()
             .items(
               Joi.object({
-                status: Joi.string().valid("complete", "incomplete").required(),
+                status: Joi.string()
+                  .valid("complete", "incomplete")
+                  .required()
+                  .description("Returns `complete` or `incomplete`."),
                 tip: Joi.string(),
                 data: Joi.object(),
                 orderIndexes: Joi.array().items(Joi.number()),
@@ -642,7 +649,7 @@ export const getExecuteListV5Options: RouteOptions = {
                   params.royaltyBps !== undefined &&
                   Number(params.royaltyBps) < 50
                 ) {
-                  throw Boom.badRequest(
+                  throw getExecuteError(
                     "Royalties should be at least 0.5% when posting to OpenSea"
                   );
                 }
@@ -670,7 +677,7 @@ export const getExecuteListV5Options: RouteOptions = {
                 let approvalTx: TxData | undefined;
 
                 // Check the order's fillability
-                const exchange = new Sdk.SeaportV14.Exchange(config.chainId);
+                const exchange = new Sdk.SeaportV15.Exchange(config.chainId);
                 try {
                   await seaportBaseCheck.offChainCheck(order, "seaport-v1.5", exchange, {
                     onChainApprovalRecheck: true,
@@ -1198,7 +1205,7 @@ export const getExecuteListV5Options: RouteOptions = {
       }
 
       if (!steps[2].items.length) {
-        const error = Boom.badRequest("No tokens can be listed");
+        const error = getExecuteError("No orders can be created");
         error.output.payload.errors = errors;
         throw error;
       }

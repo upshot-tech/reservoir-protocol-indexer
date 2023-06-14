@@ -6,6 +6,7 @@ import * as RouterV6 from "./router/v6";
 import * as Beeple from "./beeple";
 import * as BendDao from "./bend-dao";
 import * as Blur from "./blur";
+import * as CollectionXyz from "./collectionxyz";
 import * as CryptoArte from "./cryptoarte";
 import * as CryptoKitties from "./cryptokitties";
 import * as CryptoPunks from "./cryptopunks";
@@ -26,6 +27,7 @@ import * as SeaportV11 from "./seaport-v1.1";
 import * as SeaportV14 from "./seaport-v1.4";
 import * as SeaportV15 from "./seaport-v1.5";
 import * as Alienswap from "./alienswap";
+import * as Seadrop from "./seadrop";
 import * as SeaportBase from "./seaport-base";
 import * as Sudoswap from "./sudoswap";
 import * as SuperRare from "./superrare";
@@ -41,6 +43,30 @@ import * as ZeroExV4 from "./zeroex-v4";
 import * as Zora from "./zora";
 import * as LooksRareV2 from "./looks-rare-v2";
 import * as Dittoswap from "./dittoswap";
+import * as Blend from "./blend";
+import * as SudoswapV2 from "./sudoswap-v2";
+
+// Overrides (shouldn't belong here)
+if (process.env.SEAPORT_V15_OVERRIDE) {
+  const [chainId, address] = process.env.SEAPORT_V15_OVERRIDE.split(":");
+  SeaportV15.Addresses.Exchange[Number(chainId)] = address;
+}
+if (process.env.CONDUIT_CONTROLLER_OVERRIDE) {
+  const [chainId, address] = process.env.CONDUIT_CONTROLLER_OVERRIDE.split(":");
+  SeaportBase.Addresses.ConduitController[Number(chainId)] = address;
+}
+if (process.env.CONDUIT_CONTROLLER_CODE_HASH_OVERRIDE) {
+  const [chainId, address] = process.env.CONDUIT_CONTROLLER_CODE_HASH_OVERRIDE.split(":");
+  SeaportBase.Addresses.ConduitControllerCodeHash[Number(chainId)] = address;
+}
+if (process.env.ROUTER_OVERRIDE) {
+  const [chainId, address] = process.env.ROUTER_OVERRIDE.split(":");
+  RouterV6.Addresses.Router[Number(chainId)] = address;
+}
+if (process.env.APPROVAL_PROXY_OVERRIDE) {
+  const [chainId, address] = process.env.APPROVAL_PROXY_OVERRIDE.split(":");
+  RouterV6.Addresses.ApprovalProxy[Number(chainId)] = address;
+}
 
 export {
   // Common
@@ -52,6 +78,7 @@ export {
   Beeple,
   BendDao,
   Blur,
+  CollectionXyz,
   CryptoArte,
   CryptoKitties,
   CryptoPunks,
@@ -68,6 +95,7 @@ export {
   Okex,
   Quixotic,
   Rarible,
+  Seadrop,
   SeaportV11,
   SeaportV14,
   SeaportV15,
@@ -86,5 +114,7 @@ export {
   ZeroExV4,
   Zora,
   LooksRareV2,
-  Dittoswap
+  Dittoswap,
+  Blend,
+  SudoswapV2,
 };

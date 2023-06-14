@@ -25,6 +25,7 @@ import {
 } from "@/common/joi";
 import { Sources } from "@/models/sources";
 import _ from "lodash";
+import { Assets, ImageSize } from "@/utils/assets";
 
 const version = "v7";
 
@@ -139,10 +140,16 @@ export const getUserTokensV7Options: RouteOptions = {
           token: Joi.object({
             contract: Joi.string(),
             tokenId: Joi.string(),
-            kind: Joi.string(),
+            kind: Joi.string().description("Can be erc721, erc115, etc."),
             name: Joi.string().allow("", null),
             image: Joi.string().allow("", null),
-            supply: Joi.number().unsafe().allow(null),
+            imageSmall: Joi.string().allow("", null),
+            imageLarge: Joi.string().allow("", null),
+            metadata: Joi.object().allow(null),
+            supply: Joi.number()
+              .unsafe()
+              .allow(null)
+              .description("Can be higher than one if erc1155."),
             remainingSupply: Joi.number().unsafe().allow(null),
             rarityScore: Joi.number().allow(null),
             rarityRank: Joi.number().allow(null),
@@ -152,7 +159,7 @@ export const getUserTokensV7Options: RouteOptions = {
               name: Joi.string().allow("", null),
               imageUrl: Joi.string().allow(null),
               openseaVerificationStatus: Joi.string().allow("", null),
-              floorAskPrice: JoiPrice.allow(null),
+              floorAskPrice: JoiPrice.allow(null).description("Can be null if no active asks."),
               royaltiesBps: Joi.number().allow(null),
               royalties: Joi.array().items(
                 Joi.object({
@@ -166,18 +173,20 @@ export const getUserTokensV7Options: RouteOptions = {
               id: Joi.string().allow(null),
               price: JoiPrice.allow(null),
               source: Joi.object().allow(null),
-            }).optional(),
-            lastAppraisalValue: Joi.number().unsafe().allow(null),
+            })
+              .optional()
+              .description("Can be null if not active bids."),
+            lastAppraisalValue: Joi.number().unsafe().allow(null).description("Can be null."),
             attributes: Joi.array()
               .items(
                 Joi.object({
-                  key: Joi.string(),
-                  kind: Joi.string(),
-                  value: JoiAttributeValue,
+                  key: Joi.string().description("Case sensitive"),
+                  kind: Joi.string().description("Can be `string`, `number, `date, or `range`."),
+                  value: JoiAttributeValue.description("Case sensitive."),
                   tokenCount: Joi.number(),
                   onSaleCount: Joi.number(),
-                  floorAskPrice: Joi.number().unsafe().allow(null),
-                  topBidValue: Joi.number().unsafe().allow(null),
+                  floorAskPrice: Joi.number().unsafe().allow(null).description("Can be null."),
+                  topBidValue: Joi.number().unsafe().allow(null).description("Can be null."),
                   createdAt: Joi.string(),
                 })
               )
@@ -186,7 +195,7 @@ export const getUserTokensV7Options: RouteOptions = {
           ownership: Joi.object({
             tokenCount: Joi.string(),
             onSaleCount: Joi.string(),
-            floorAsk: {
+            floorAsk: Joi.object({
               id: Joi.string().allow(null),
               price: JoiPrice.allow(null),
               maker: Joi.string().lowercase().pattern(regex.address).allow(null),
@@ -195,7 +204,8 @@ export const getUserTokensV7Options: RouteOptions = {
               validUntil: Joi.number().unsafe().allow(null),
               source: Joi.object().allow(null),
               rawData: Joi.object().optional().allow(null),
-            },
+              isNativeOffChainCancellable: Joi.boolean().optional(),
+            }).description("Can be null if no asks."),
             acquiredAt: Joi.string().allow(null),
           }),
         })
@@ -372,6 +382,7 @@ export const getUserTokensV7Options: RouteOptions = {
           t.token_id,
           t.name,
           t.image,
+          t.metadata,
           t.media,
           t.rarity_rank,
           t.collection_id,
@@ -408,6 +419,7 @@ export const getUserTokensV7Options: RouteOptions = {
             t.token_id,
             t.name,
             t.image,
+            t.metadata,
             t.media,
             t.rarity_rank,
             t.collection_id,
@@ -440,20 +452,26 @@ export const getUserTokensV7Options: RouteOptions = {
             o.currency_value AS "top_bid_currency_value",
             o.source_id_int AS "top_bid_source_id_int"
           FROM "orders" "o"
-          JOIN "token_sets_tokens" "tst" ON "o"."token_set_id" = "tst"."token_set_id"
+          JOIN "token_sets_tokens" "tst"
+            ON "o"."token_set_id" = "tst"."token_set_id"
           WHERE "tst"."contract" = "b"."contract"
-          AND "tst"."token_id" = "b"."token_id"
-          AND "o"."side" = 'buy'
-          AND "o"."fillability_status" = 'fillable'
-          AND "o"."approval_status" = 'approved'
-          ${query.normalizeRoyalties ? " AND o.normalized_value IS NOT NULL" : ""}
-          AND EXISTS(
-            SELECT FROM "nft_balances" "nb"
-              WHERE "nb"."contract" = "b"."contract"
-              AND "nb"."token_id" = "b"."token_id"
-              AND "nb"."amount" > 0
-              AND "nb"."owner" != "o"."maker"
-          )
+            AND "tst"."token_id" = "b"."token_id"
+            AND "o"."side" = 'buy'
+            AND "o"."fillability_status" = 'fillable'
+            AND "o"."approval_status" = 'approved'
+            ${query.normalizeRoyalties ? " AND o.normalized_value IS NOT NULL" : ""}
+            AND EXISTS(
+              SELECT FROM "nft_balances" "nb"
+                WHERE "nb"."contract" = "b"."contract"
+                AND "nb"."token_id" = "b"."token_id"
+                AND "nb"."amount" > 0
+                AND "nb"."owner" != "o"."maker"
+                AND (
+                  "o"."taker" IS NULL
+                  OR "o"."taker" = '\\x0000000000000000000000000000000000000000'
+                  OR "o"."taker" = "nb"."owner"
+                )
+            )
           ORDER BY "o"."value" DESC
           LIMIT 1
         ) "y" ON TRUE
@@ -491,7 +509,7 @@ export const getUserTokensV7Options: RouteOptions = {
     try {
       let baseQuery = `
         SELECT b.contract, b.token_id, b.token_count, extract(epoch from b.acquired_at) AS acquired_at, b.last_token_appraisal_value,
-               t.name, t.image, t.media, t.rarity_rank, t.collection_id, t.floor_sell_id, t.floor_sell_value, t.floor_sell_currency, t.floor_sell_currency_value,
+               t.name, t.image, t.metadata AS token_metadata, t.media, t.rarity_rank, t.collection_id, t.floor_sell_id, t.floor_sell_value, t.floor_sell_currency, t.floor_sell_currency_value,
                t.floor_sell_maker, t.floor_sell_valid_from, t.floor_sell_valid_to, t.floor_sell_source_id_int, t.supply, t.remaining_supply,
                t.rarity_score, ${selectLastSale}
                top_bid_id, top_bid_price, top_bid_value, top_bid_currency, top_bid_currency_price, top_bid_currency_value, top_bid_source_id_int,
@@ -633,6 +651,13 @@ export const getUserTokensV7Options: RouteOptions = {
             kind: r.kind,
             name: r.name,
             image: r.image,
+            imageSmall: Assets.getResizedImageUrl(r.image, ImageSize.small),
+            imageLarge: Assets.getResizedImageUrl(r.image, ImageSize.large),
+            metadata: r.token_metadata?.image_original_url
+              ? {
+                  imageOriginal: r.token_metadata.image_original_url,
+                }
+              : undefined,
             rarityScore: r.rarity_score,
             rarityRank: r.rarity_rank,
             supply: !_.isNull(r.supply) ? r.supply : null,
@@ -760,6 +785,10 @@ export const getUserTokensV7Options: RouteOptions = {
                 url: floorSellSource?.metadata.url,
               },
               rawData: query.includeRawData ? r.floor_sell_raw_data : undefined,
+              isNativeOffChainCancellable: query.includeRawData
+                ? r.floor_sell_raw_data?.zone ===
+                  Sdk.SeaportBase.Addresses.ReservoirCancellationZone[config.chainId]
+                : undefined,
             },
             acquiredAt: acquiredTime,
           },

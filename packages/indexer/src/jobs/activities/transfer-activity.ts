@@ -2,10 +2,15 @@ import { ActivitiesEntityInsertParams, ActivityType } from "@/models/activities/
 import { Tokens } from "@/models/tokens";
 import _ from "lodash";
 import { Activities } from "@/models/activities";
-import { AddressZero } from "@ethersproject/constants";
 import { getActivityHash } from "@/jobs/activities/utils";
 import { UserActivitiesEntityInsertParams } from "@/models/user-activities/user-activities-entity";
 import { UserActivities } from "@/models/user-activities";
+import { config } from "@/config/index";
+
+import * as ActivitiesIndex from "@/elasticsearch/indexes/activities";
+import { NftTransferEventCreatedEventHandler } from "@/elasticsearch/indexes/activities/event-handlers/nft-transfer-event-created";
+import { getNetworkSettings } from "@/config/network";
+import { logger } from "@/common/logger";
 import * as fixActivitiesMissingCollection from "@/jobs/activities/fix-activities-missing-collection";
 
 export class TransferActivity {
@@ -18,8 +23,10 @@ export class TransferActivity {
       data.batchIndex.toString()
     );
 
+    const mintAddresses = getNetworkSettings().mintAddresses;
+
     const activity = {
-      type: data.fromAddress == AddressZero ? ActivityType.mint : ActivityType.transfer,
+      type: mintAddresses.includes(data.fromAddress) ? ActivityType.mint : ActivityType.transfer,
       hash: activityHash,
       contract: data.contract,
       collectionId,
@@ -44,7 +51,7 @@ export class TransferActivity {
     toUserActivity.address = data.toAddress;
     userActivities.push(toUserActivity);
 
-    if (data.fromAddress != AddressZero) {
+    if (!mintAddresses.includes(data.fromAddress)) {
       // One record for the user from address if not a mint event
       const fromUserActivity = _.clone(activity) as UserActivitiesEntityInsertParams;
       fromUserActivity.address = data.fromAddress;
@@ -56,8 +63,21 @@ export class TransferActivity {
       UserActivities.addActivities(userActivities),
     ]);
 
+    if (config.doElasticsearchWork) {
+      const eventHandler = new NftTransferEventCreatedEventHandler(
+        data.transactionHash,
+        data.logIndex,
+        data.batchIndex
+      );
+      const esActivity = await eventHandler.generateActivity();
+
+      if (esActivity) {
+        await ActivitiesIndex.save([esActivity]);
+      }
+    }
+
     // If collection information is not available yet when a mint event
-    if (!collectionId && data.fromAddress == AddressZero) {
+    if (!collectionId && activity.type === ActivityType.mint) {
       await fixActivitiesMissingCollection.addToQueue(data.contract, data.tokenId);
     }
   }
@@ -69,6 +89,8 @@ export class TransferActivity {
 
     const activities = [];
     const userActivities = [];
+    const esActivities = [];
+    const mintAddresses = getNetworkSettings().mintAddresses;
 
     for (const data of events) {
       const activityHash = getActivityHash(
@@ -80,7 +102,7 @@ export class TransferActivity {
       const collectionId = collectionIds?.get(`${data.contract}:${data.tokenId}`);
 
       const activity = {
-        type: data.fromAddress == AddressZero ? ActivityType.mint : ActivityType.transfer,
+        type: mintAddresses.includes(data.fromAddress) ? ActivityType.mint : ActivityType.transfer,
         hash: activityHash,
         contract: data.contract,
         collectionId,
@@ -103,7 +125,7 @@ export class TransferActivity {
       toUserActivity.address = data.toAddress;
       userActivities.push(toUserActivity);
 
-      if (data.fromAddress != AddressZero) {
+      if (!mintAddresses.includes(data.fromAddress)) {
         // One record for the user from address if not a mint event
         const fromUserActivity = _.clone(activity) as UserActivitiesEntityInsertParams;
         fromUserActivity.address = data.fromAddress;
@@ -112,8 +134,31 @@ export class TransferActivity {
 
       activities.push(activity);
 
+      if (config.doElasticsearchWork) {
+        const eventHandler = new NftTransferEventCreatedEventHandler(
+          data.transactionHash,
+          data.logIndex,
+          data.batchIndex
+        );
+
+        try {
+          const esActivity = await eventHandler.generateActivity();
+
+          if (esActivity) {
+            esActivities.push(esActivity);
+          }
+        } catch (error) {
+          logger.error(
+            "generate-elastic-activity",
+            `failed to generate elastic activity error ${error} activity ${JSON.stringify(
+              activity
+            )}`
+          );
+        }
+      }
+
       // If collection information is not available yet when a mint event
-      if (!collectionId && data.fromAddress == AddressZero) {
+      if (!collectionId && activity.type === ActivityType.mint) {
         await fixActivitiesMissingCollection.addToQueue(data.contract, data.tokenId);
       }
     }
@@ -123,6 +168,10 @@ export class TransferActivity {
       Activities.addActivities(activities),
       UserActivities.addActivities(userActivities),
     ]);
+
+    if (esActivities.length) {
+      await ActivitiesIndex.save(esActivities, false);
+    }
   }
 }
 

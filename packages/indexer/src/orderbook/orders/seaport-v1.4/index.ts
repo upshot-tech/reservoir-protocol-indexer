@@ -67,7 +67,8 @@ type SaveResult = {
 export const save = async (
   orderInfos: OrderInfo[],
   validateBidValue?: boolean,
-  ingestMethod?: "websocket" | "rest"
+  ingestMethod?: "websocket" | "rest",
+  ingestDelay?: number
 ): Promise<SaveResult[]> => {
   const results: SaveResult[] = [];
   const orderValues: DbOrder[] = [];
@@ -122,7 +123,6 @@ export const save = async (
       if (
         ![
           HashZero,
-          Sdk.SeaportBase.Addresses.OpenseaConduitKey[config.chainId],
           Sdk.SeaportBase.Addresses.OriginConduitKey[config.chainId],
           Sdk.SeaportBase.Addresses.SpaceIdConduitKey[config.chainId],
         ].includes(order.params.conduitKey)
@@ -161,6 +161,8 @@ export const save = async (
               kind: "seaport-v1.4",
               info: { orderParams, metadata, isReservoir, isOpenSea, openSeaOrderParams },
               validateBidValue,
+              ingestMethod,
+              ingestDelay: startTime - currentTime + 5,
             },
           ],
           false,
@@ -443,7 +445,7 @@ export const save = async (
       let feeAmount = order.getFeeAmount();
 
       // Handle: price and value
-      let price = bn(order.getMatchingPrice());
+      let price = bn(order.getMatchingPrice(Math.max(now(), startTime)));
       let value = price;
       if (info.side === "buy") {
         // For buy orders, we set the value as `price - fee` since it
@@ -648,6 +650,17 @@ export const save = async (
           const collectionTopBidValue = await topBidsCache.getCollectionTopBidValue(
             info.contract,
             Number(tokenId)
+          );
+
+          logger.debug(
+            "orders-seaport-v1.4-save",
+            JSON.stringify({
+              topic: "validateBidValue",
+              collectionTopBidValue,
+              contract: info.contract,
+              tokenId,
+              value: value.toString(),
+            })
           );
 
           if (collectionTopBidValue) {
@@ -861,6 +874,7 @@ export const save = async (
                 kind: "new-order",
               },
               ingestMethod,
+              ingestDelay,
             } as ordersUpdateById.OrderInfo)
         )
     );

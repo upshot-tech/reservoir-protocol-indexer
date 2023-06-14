@@ -15,11 +15,11 @@ import * as syncEventsUtils from "@/events-sync/utils";
 import * as blocksModel from "@/models/blocks";
 import getUuidByString from "uuid-by-string";
 
-import * as removeUnsyncedEventsActivities from "@/jobs/activities/remove-unsynced-events-activities";
 import * as blockCheck from "@/jobs/events-sync/block-check-queue";
 import * as eventsSyncBackfillProcess from "@/jobs/events-sync/process/backfill";
 import * as eventsSyncRealtimeProcess from "@/jobs/events-sync/process/realtime";
 import { BlocksToCheck } from "@/jobs/events-sync/block-check-queue";
+import { removeUnsyncedEventsActivitiesJob } from "@/jobs/activities/remove-unsynced-events-activities-job";
 
 export const extractEventsBatches = async (
   enhancedEvents: EnhancedEvent[],
@@ -48,6 +48,8 @@ export const extractEventsBatches = async (
       limit(() => {
         const kindToEvents = new Map<EventKind, EnhancedEvent[]>();
         let blockHash = "";
+        let logIndex = null;
+        let batchIndex = null;
 
         for (const event of events) {
           if (!kindToEvents.has(event.kind)) {
@@ -56,6 +58,8 @@ export const extractEventsBatches = async (
 
           if (!blockHash) {
             blockHash = event.baseEventParams.blockHash;
+            logIndex = event.baseEventParams.logIndex;
+            batchIndex = event.baseEventParams.batchIndex;
           }
 
           kindToEvents.get(event.kind)!.push(event);
@@ -129,6 +133,10 @@ export const extractEventsBatches = async (
           {
             kind: "sudoswap",
             data: kindToEvents.get("sudoswap") ?? [],
+          },
+          {
+            kind: "sudoswap-v2",
+            data: kindToEvents.get("sudoswap-v2") ?? [],
           },
           {
             kind: "wyvern",
@@ -229,10 +237,18 @@ export const extractEventsBatches = async (
             kind: "looks-rare-v2",
             data: kindToEvents.get("looks-rare-v2") ?? [],
           },
+          {
+            kind: "blend",
+            data: kindToEvents.get("blend") ?? [],
+          },
+          {
+            kind: "collectionxyz",
+            data: kindToEvents.get("collectionxyz") ?? [],
+          },
         ];
 
         txHashToEventsBatch.set(txHash, {
-          id: getUuidByString(`${txHash}:${blockHash}`),
+          id: getUuidByString(`${txHash}:${logIndex}:${batchIndex}:${blockHash}`),
           events: eventsByKind,
           backfill,
         });
@@ -360,17 +376,17 @@ export const syncEvents = async (
         // Keep track of the block
         blocksSet.add(`${log.blockNumber}-${log.blockHash}`);
 
-        // Find first matching event:
+        // Find matching events:
         // - matching topic
         // - matching number of topics (eg. indexed fields)
         // - matching address
-        const eventData = availableEventData.find(
+        const matchingEventDatas = availableEventData.filter(
           ({ addresses, numTopics, topic }) =>
             log.topics[0] === topic &&
             log.topics.length === numTopics &&
             (addresses ? addresses[log.address.toLowerCase()] : true)
         );
-        if (eventData) {
+        for (const eventData of matchingEventDatas) {
           enhancedEvents.push({
             kind: eventData.kind,
             subKind: eventData.subKind,
@@ -429,7 +445,7 @@ export const syncEvents = async (
 
       // Log blocks for which no logs were fetched from the RPC provider
       if (!_.isEmpty(blockNumbersArray)) {
-        logger.warn(
+        logger.debug(
           "sync-events",
           `[${fromBlock}, ${toBlock}] No logs fetched for ${JSON.stringify(blockNumbersArray)}`
         );
@@ -440,27 +456,29 @@ export const syncEvents = async (
 
     const endTimeProcessingEvents = now();
 
-    logger.info(
-      "sync-events-timing-2",
-      JSON.stringify({
-        message: `Events realtime syncing block range [${fromBlock}, ${toBlock}]`,
-        blocks: {
-          count: blocksSet.size,
-          time: endTimeFetchingBlocks - startTimeFetchingBlocks,
-        },
-        logs: {
-          count: logs.length,
-          time: endTimeFetchingLogs - startTimeFetchingLogs,
-        },
-        events: {
-          count: enhancedEvents.length,
-          time: endTimeProcessingEvents - startTimeProcessingEvents,
-        },
-        queue: {
-          time: endTimeAddToProcessQueue - startTimeAddToProcessQueue,
-        },
-      })
-    );
+    if (!backfill) {
+      logger.info(
+        "sync-events-timing-2",
+        JSON.stringify({
+          message: `Events realtime syncing block range [${fromBlock}, ${toBlock}]`,
+          blocks: {
+            count: blocksSet.size,
+            time: endTimeFetchingBlocks - startTimeFetchingBlocks,
+          },
+          logs: {
+            count: logs.length,
+            time: endTimeFetchingLogs - startTimeFetchingLogs,
+          },
+          events: {
+            count: enhancedEvents.length,
+            time: endTimeProcessingEvents - startTimeProcessingEvents,
+          },
+          queue: {
+            time: endTimeAddToProcessQueue - startTimeAddToProcessQueue,
+          },
+        })
+      );
+    }
   });
 };
 
@@ -473,6 +491,6 @@ export const unsyncEvents = async (block: number, blockHash: string) => {
     es.ftTransfers.removeEvents(block, blockHash),
     es.nftApprovals.removeEvents(block, blockHash),
     es.nftTransfers.removeEvents(block, blockHash),
-    removeUnsyncedEventsActivities.addToQueue(blockHash),
+    removeUnsyncedEventsActivitiesJob.addToQueue({ blockHash }),
   ]);
 };

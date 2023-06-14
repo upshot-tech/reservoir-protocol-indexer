@@ -7,7 +7,11 @@ import {
   OpenSeaStreamClient,
   TraitOfferEventPayload,
 } from "@opensea/stream-js";
-import { ItemListedEventPayload, ItemMetadataUpdatePayload } from "@opensea/stream-js/dist/types";
+import {
+  ItemCancelledEventPayload,
+  ItemListedEventPayload,
+  OrderValidationEventPayload,
+} from "@opensea/stream-js/dist/types";
 import * as Sdk from "@reservoir0x/sdk";
 import { WebSocket } from "ws";
 import { logger } from "@/common/logger";
@@ -17,18 +21,20 @@ import { config } from "@/config/index";
 import { OpenseaOrderParams } from "@/orderbook/orders/seaport-v1.1";
 import { generateHash, getSupportedChainName } from "@/websockets/opensea/utils";
 import * as orderbookOrders from "@/jobs/orderbook/orders-queue";
+import { GenericOrderInfo } from "@/jobs/orderbook/orders-queue";
 import * as orderbookOpenseaListings from "@/jobs/orderbook/opensea-listings-queue";
 import { handleEvent as handleItemListedEvent } from "@/websockets/opensea/handlers/item_listed";
 import { handleEvent as handleItemReceivedBidEvent } from "@/websockets/opensea/handlers/item_received_bid";
 import { handleEvent as handleCollectionOfferEvent } from "@/websockets/opensea/handlers/collection_offer";
+import { handleEvent as handleItemCancelled } from "@/websockets/opensea/handlers/item_cancelled";
+import { handleEvent as handleOrderRevalidate } from "@/websockets/opensea/handlers/order_revalidate";
 import { handleEvent as handleTraitOfferEvent } from "@/websockets/opensea/handlers/trait_offer";
 import MetadataApi from "@/utils/metadata-api";
 import * as metadataIndexWrite from "@/jobs/metadata-index/write-queue";
-import { GenericOrderInfo } from "@/jobs/orderbook/orders-queue";
 
 if (config.doWebsocketWork && config.openSeaApiKey) {
   const network = config.chainId === 5 ? Network.TESTNET : Network.MAINNET;
-  const maxEventsSize = config.chainId === 1 ? 200 : 1;
+  const maxBidsSize = config.chainId === 1 ? 200 : 1;
   const bidsEvents: GenericOrderInfo[] = [];
 
   const client = new OpenSeaStreamClient({
@@ -53,6 +59,8 @@ if (config.doWebsocketWork && config.openSeaApiKey) {
       EventType.ITEM_RECEIVED_BID,
       EventType.COLLECTION_OFFER,
       EventType.TRAIT_OFFER,
+      EventType.ITEM_CANCELLED,
+      EventType.ORDER_REVALIDATE,
     ],
     async (event) => {
       try {
@@ -68,7 +76,7 @@ if (config.doWebsocketWork && config.openSeaApiKey) {
         // await saveEvent(event);
 
         const eventType = event.event_type as EventType;
-        const openSeaOrderParams = handleEvent(eventType, event.payload);
+        const openSeaOrderParams = await handleEvent(eventType, event.payload);
 
         if (openSeaOrderParams) {
           const protocolData = parseProtocolData(event.payload);
@@ -94,20 +102,9 @@ if (config.doWebsocketWork && config.openSeaApiKey) {
             } else {
               bidsEvents.push(orderInfo);
 
-              const startTime = now();
-              if (bidsEvents.length >= maxEventsSize) {
+              if (bidsEvents.length >= maxBidsSize) {
                 const orderInfoBatch = bidsEvents.splice(0, bidsEvents.length);
                 await orderbookOrders.addToQueue(orderInfoBatch);
-
-                logger.info(
-                  "opensea-websocket",
-                  JSON.stringify({
-                    message: `Flushed ${orderInfoBatch.length} left in the array ${
-                      bidsEvents.length
-                    } add to queue ${now() - startTime}ms`,
-                    addToQueueTime: now() - startTime,
-                  })
-                );
               }
             }
           }
@@ -133,28 +130,6 @@ if (config.doWebsocketWork && config.openSeaApiKey) {
 
       const [, contract, tokenId] = event.payload.item.nft_id.split("/");
 
-      // const token = await ridb.oneOrNone(
-      //   `SELECT metadata_indexed
-      //         FROM tokens
-      //         WHERE contract = $/contract/
-      //         AND token_id = $/tokenId/`,
-      //   {
-      //     contract: toBuffer(contract),
-      //     tokenId,
-      //   }
-      // );
-      //
-      // logger.debug(
-      //   "opensea-websocket-item-metadata-update-event",
-      //   `Metadata received. contract=${contract}, tokenId=${tokenId}, event=${JSON.stringify(
-      //     event
-      //   )}, token=${JSON.stringify(token)}`
-      // );
-      //
-      // if (!token || token.metadata_indexed) {
-      //   return;
-      // }
-
       const metadata = {
         asset_contract: {
           address: contract,
@@ -164,21 +139,13 @@ if (config.doWebsocketWork && config.openSeaApiKey) {
         },
         token_id: tokenId,
         name: event.payload.item.metadata.name ?? undefined,
-        description:
-          (event.payload.item.metadata as ItemMetadataUpdatePayload).description ?? undefined,
+        description: event.payload.item.metadata.description ?? undefined,
         image_url: event.payload.item.metadata.image_url ?? undefined,
         animation_url: event.payload.item.metadata.animation_url ?? undefined,
-        traits: (event.payload.item.metadata as ItemMetadataUpdatePayload).traits,
+        traits: event.payload.item.metadata.traits,
       };
 
       const parsedMetadata = await MetadataApi.parseTokenMetadata(metadata, "opensea");
-
-      logger.info(
-        "opensea-websocket-item-metadata-update-event",
-        `Metadata parsed. contract=${contract}, tokenId=${tokenId}, event=${JSON.stringify(
-          event
-        )}, metadata=${JSON.stringify(metadata)}, parsedMetadata=${JSON.stringify(parsedMetadata)}`
-      );
 
       if (parsedMetadata) {
         await metadataIndexWrite.addToQueue([parsedMetadata]);
@@ -191,20 +158,6 @@ if (config.doWebsocketWork && config.openSeaApiKey) {
     }
   });
 }
-
-// const saveEvent = async (event: BaseStreamMessage<unknown>) => {
-//   if (!config.openseaWebsocketEventsAwsFirehoseDeliveryStreamName) {
-//     return;
-//   }
-//
-//   const openseaWebsocketEvents = new OpenseaWebsocketEvents();
-//   await openseaWebsocketEvents.add([
-//     {
-//       event,
-//       createdAt: new Date().toISOString(),
-//     },
-//   ]);
-// };
 
 export const getEventHash = (event: BaseStreamMessage<unknown>): string => {
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -234,11 +187,11 @@ export const isDuplicateEvent = async (event: BaseStreamMessage<unknown>): Promi
   return setResult === null;
 };
 
-export const handleEvent = (
+export const handleEvent = async (
   type: EventType,
   payload: unknown
   // `PartialOrderComponents` has the same types for both `seaport` and `seaport-v1.4`
-): OpenseaOrderParams | null => {
+): Promise<OpenseaOrderParams | null> => {
   switch (type) {
     case EventType.ITEM_LISTED:
       return handleItemListedEvent(payload as ItemListedEventPayload);
@@ -248,6 +201,10 @@ export const handleEvent = (
       return handleCollectionOfferEvent(payload as CollectionOfferEventPayload);
     case EventType.TRAIT_OFFER:
       return handleTraitOfferEvent(payload as TraitOfferEventPayload);
+    case EventType.ITEM_CANCELLED:
+      return await handleItemCancelled(payload as ItemCancelledEventPayload);
+    case EventType.ORDER_REVALIDATE:
+      return await handleOrderRevalidate(payload as OrderValidationEventPayload);
     default:
       return null;
   }

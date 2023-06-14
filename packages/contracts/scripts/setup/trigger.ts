@@ -46,7 +46,7 @@ const writeDeployment = async (
 };
 
 const deploy = async (contractName: string, version: string, args: any[]) => {
-  const dh = await DeploymentHelper.getInstance(process.env.CREATE3_FACTORY_ADDRESS_OVERRIDE);
+  const dh = await DeploymentHelper.getInstance();
 
   if (args.some((arg) => !arg || arg === AddressZero || arg === HashZero)) {
     throw new Error("Invalid args");
@@ -122,6 +122,7 @@ export const trigger = {
         const result = await conduitController.getConduit(conduitKey);
         if (!result.exists) {
           await conduitController.createConduit(conduitKey, DEPLOYER);
+          await new Promise((resolve) => setTimeout(resolve, 30000));
           await conduitController.updateChannel(
             result.conduit,
             Sdk.RouterV6.Addresses.ApprovalProxy[chainId],
@@ -167,6 +168,12 @@ export const trigger = {
         Sdk.RouterV6.Addresses.Router[chainId],
         Sdk.Nftx.Addresses.MarketplaceZap[chainId],
       ]),
+    NFTXZeroExModule: async (chainId: number) =>
+      dv("NFTXZeroExModule", "v2", [
+        DEPLOYER,
+        Sdk.RouterV6.Addresses.Router[chainId],
+        Sdk.Nftx.Addresses.ZeroExMarketplaceZap[chainId],
+      ]),
     RaribleModule: async (chainId: number) =>
       dv("RaribleModule", "v1", [
         DEPLOYER,
@@ -204,6 +211,8 @@ export const trigger = {
         Sdk.RouterV6.Addresses.Router[chainId],
         Sdk.Sudoswap.Addresses.Router[chainId],
       ]),
+    SudoswapV2Module: async (chainId: number) =>
+      dv("SudoswapV2Module", "v2", [DEPLOYER, Sdk.RouterV6.Addresses.Router[chainId]]),
     SuperRareModule: async (chainId: number) =>
       dv("SuperRareModule", "v1", [
         DEPLOYER,
@@ -236,6 +245,12 @@ export const trigger = {
         DEPLOYER,
         Sdk.RouterV6.Addresses.Router[chainId],
         Sdk.Zora.Addresses.Exchange[chainId],
+      ]),
+    CollectionXyzModule: async (chainId: number) =>
+      dv("CollectionXyzModule", "v2", [
+        DEPLOYER,
+        Sdk.RouterV6.Addresses.Router[chainId],
+        Sdk.CollectionXyz.Addresses.CollectionRouter[chainId],
       ]),
   },
   // Utilities

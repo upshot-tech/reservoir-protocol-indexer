@@ -91,7 +91,9 @@ export const postOrderV4Options: RouteOptions = {
           crossPostingOrderId: Joi.string().description(
             "Only available when posting to external orderbook. Can be used to retrieve the status of a cross-post order."
           ),
-          crossPostingOrderStatus: Joi.string(),
+          crossPostingOrderStatus: Joi.string().description(
+            "Current cross-post order status. Responses are `pending`, `posted`, or `failed`."
+          ),
         })
       ),
     }).label(`postOrder${version.toUpperCase()}Response`),
@@ -278,21 +280,6 @@ export const postOrderV4Options: RouteOptions = {
                   orderbook,
                   orderbookApiKey,
                 });
-              } else if (orderbook === "reservoir") {
-                const [result] = await orders.blur.saveListings([
-                  {
-                    orderParams: order.data,
-                    metadata: {
-                      schema,
-                    },
-                  },
-                ]);
-
-                orderId = result.id;
-
-                if (!["success", "already-exists"].includes(result.status)) {
-                  return results.push({ message: result.status, orderIndex: i, orderId });
-                }
               } else {
                 return results.push({ message: "unsupported-orderbook", orderIndex: i });
               }
