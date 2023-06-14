@@ -86,4 +86,5 @@ export {
   ZeroExV4,
   Zora,
   LooksRareV2,
+  Dittoswap
 };

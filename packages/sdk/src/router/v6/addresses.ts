@@ -94,6 +94,11 @@ export const SudoswapModule: ChainIdToAddress = {
   [Network.Ethereum]: "0xa97727370e2592f83602bc92975c49c4fea4491f",
 };
 
+export const DittoSwapModule: ChainIdToAddress = {
+  [Network.Ethereum]: "TBD",
+  [Network.EthereumGoerli]: "0xa4f7b38e54ec859a7f5b9aca0de037c35377bf57",
+};
+
 export const X2Y2Module: ChainIdToAddress = {
   [Network.Ethereum]: "0x7562e6d5d901ece54a89530f1c8d63e7cfaeebff",
   [Network.EthereumGoerli]: "0x7562e6d5d901ece54a89530f1c8d63e7cfaeebff",

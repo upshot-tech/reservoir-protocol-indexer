@@ -40,13 +40,15 @@ export class Router {
       data:
         this.contract.interface.encodeFunctionData(
           "swapTokensForNfts", [
-            order.params.swapList,
-            order.params.inputAmount,
-            order.params.tokenSender,
-            order.params.nftRecipient,
-            order.params.inputAmount,
+            order.params.swapList.map((swap) => { return [swap.pool, swap.nftIds, swap.swapData]}),
+            order.params.amount,
+            order.params.recipient,
+            order.params.deadline,
         ]
       )
     }
   };
 }
+
+
+  // --- TRADING ERC20 TOKENS FOR NFTs

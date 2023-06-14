@@ -1,11 +1,11 @@
 import * as Types from "./types";
-import { lc, s } from "../utils";
+import { lc, s, n } from "../utils";
 
 export class Order {
   public chainId: number;
-  public params: Types.BuyOrderParams;
+  public params: Types.OrderParams;
 
-  constructor(chainId: number, params: Types.BuyOrderParams) {
+  constructor(chainId: number, params: Types.OrderParams) {
     this.chainId = chainId;
 
     try {
@@ -16,16 +16,22 @@ export class Order {
   }
 }
 
-const normalize = (order: Types.BuyOrderParams): Types.BuyOrderParams => {
+const normalize = (order: Types.OrderParams): Types.OrderParams => {
   // Perform some normalization operations on the order:
   // - convert bignumbers to strings where needed
   // - convert strings to numbers where needed
   // - lowercase all strings
   return {
-    swapList: order.swapList.map((swap) => { return { pool: s(swap.pool), nftIds: swap.nftIds, swapData: s(swap.swapData) }}),
-    inputAmount: s(order.inputAmount),
-    tokenSender: s(order.tokenSender),
-    nftRecipient: s(order.nftRecipient),
-    deadline: s(order.deadline)
+    swapList: order.swapList.map((swap) => { 
+      return { 
+        pool: lc(swap.pool),
+        nftIds: swap.nftIds, 
+        swapData: swap.swapData,
+        lpIds: swap.lpIds,
+        permitterData: swap.permitterData
+      }}),
+    amount: order.amount,
+    recipient: lc(order.recipient),
+    deadline: order.deadline
   };
 };

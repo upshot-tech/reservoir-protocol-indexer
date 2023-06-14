@@ -7,45 +7,23 @@ import {
  * Definition of the native order formats for the Ditto router contract
  */
 
-
-/**
- * function swapTokensForNfts(Swap[] calldata swapList, uint256 inputAmount, address nftRecipient, uint256 deadline)
-*/
-
-export interface Swap {
-  pool: string,
-  nftIds: string[],
-  swapData: string
-}
-
-export type BuyOrderParams = {
-  swapList: Swap[],
-  inputAmount: string,
-  tokenSender: string,
-  nftRecipient: string,
-  deadline: number
-}
-
-/*
-  function swapNftsForTokens(NftInSwap[] calldata swapList, uint256 minOutput, address tokenRecipient, uint256 deadline)
-*/
 export interface NftInSwap {
   pool: string,
   nftIds: string[],
-  lpIds: string[],
-  permitterData: string,
+  lpIds?: string[], // required for sell orders
+  permitterData?: string, // required for sell orders
   swapData: string
 }
 
-export type SellOrderParams = {
+export type OrderParams = {
   swapList: NftInSwap[],
-  minOutput: string,
-  tokenRecipient: string,
+  amount: string, // buy = erc20 inputAmount, sell = minOutput erc20 amount
+  recipient: string, // buy = nftRecipient, sell = erc20 tokenRecipient
   deadline: number
 }
 
 /**
- * helpers
+ * Helpers (we may replace these with sdk down the line)
  */
 
 export type PriceDataStruct = {

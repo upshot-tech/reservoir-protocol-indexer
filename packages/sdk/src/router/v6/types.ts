@@ -139,7 +139,11 @@ export type GenericOrder =
   | {
       kind: "looks-rare-v2";
       order: Sdk.LooksRareV2.Order;
-    };
+    }
+  | {
+      kind: "dittoswap";
+      order: Sdk.Dittoswap.Order
+    }
 
 // Listings
 

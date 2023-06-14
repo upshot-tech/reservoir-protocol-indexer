@@ -44,6 +44,7 @@ import SeaportV14ModuleAbi from "./abis/SeaportV14Module.json";
 import SeaportV15ModuleAbi from "./abis/SeaportV15Module.json";
 import AlienswapModuleAbi from "./abis/AlienswapModule.json";
 import SudoswapModuleAbi from "./abis/SudoswapModule.json";
+import DittoswapModuleAbi from "./abis/DittoswapModule.json";
 import SuperRareModuleAbi from "./abis/SuperRareModule.json";
 import SwapModuleAbi from "./abis/SwapModule.json";
 import X2Y2ModuleAbi from "./abis/X2Y2Module.json";
@@ -113,6 +114,11 @@ export class Router {
       sudoswapModule: new Contract(
         Addresses.SudoswapModule[chainId] ?? AddressZero,
         SudoswapModuleAbi,
+        provider
+      ),
+      dittoswapModule: new Contract(
+        Addresses.DittoSwapModule[chainId] ?? AddressZero,
+        DittoswapModuleAbi,
         provider
       ),
       superRareModule: new Contract(
@@ -823,6 +829,7 @@ export class Router {
     const seaportV15Details: PerCurrencyListingDetails = {};
     const alienswapDetails: PerCurrencyListingDetails = {};
     const sudoswapDetails: ListingDetails[] = [];
+    const dittoswapDetails: ListingDetails[] = [];
     const x2y2Details: ListingDetails[] = [];
     const zeroexV4Erc721Details: ListingDetails[] = [];
     const zeroexV4Erc1155Details: ListingDetails[] = [];
@@ -889,6 +896,10 @@ export class Router {
 
         case "sudoswap":
           detailsRef = sudoswapDetails;
+          break;
+        
+        case "dittoswap":
+          detailsRef = dittoswapDetails;
           break;
 
         case "x2y2":
@@ -1736,6 +1747,46 @@ export class Router {
         executionIndex: executions.length - 1,
       });
 
+      // Mark the listings as successfully handled
+      for (const { orderId } of sudoswapDetails) {
+        success[orderId] = true;
+        orderIds.push(orderId);
+      }
+    }
+
+    // Handle Dittoswap listings
+    if (dittoswapDetails.length) {
+      const orders = dittoswapDetails.map((d) => d.order as Sdk.Dittoswap.Order);
+      const router = new Sdk.Dittoswap.Router(this.chainId)
+      const module = this.contracts.dittoswapModule;
+
+      const fees = getFees(dittoswapDetails)
+      const price = orders
+        .map((order) =>
+          bn(order.params.amount)
+        )
+        .reduce((a, b) => a.add(b), bn(0));
+      const feeAmount = fees.map(({ amount }) => bn(amount)).reduce((a, b) => a.add(b), bn(0));
+      const totalPrice = price.add(feeAmount);
+
+      // add executions
+      for (const order of orders) {
+        executions.push({
+          module: module.address,
+          data: router.fillBuyOrderTx(taker, order).data,
+          value: totalPrice,
+        });
+      }
+      // Track any possibly required swap
+      swapDetails.push({
+        tokenIn: buyInCurrency,
+        tokenOut: Sdk.Common.Addresses.Eth[this.chainId],
+        tokenOutAmount: totalPrice,
+        recipient: module.address,
+        refundTo: relayer,
+        details: dittoswapDetails,
+        executionIndex: executions.length - 1,
+      });
       // Mark the listings as successfully handled
       for (const { orderId } of sudoswapDetails) {
         success[orderId] = true;
@@ -2815,6 +2866,11 @@ export class Router {
 
         case "sudoswap": {
           module = this.contracts.sudoswapModule;
+          break;
+        }
+
+        case "dittoswap": {
+          module = this.contracts.dittoswapModule;
           break;
         }
 
