@@ -19,7 +19,11 @@ export type OrderParams = {
   swapList: NftInSwap[],
   amount: string, // buy = erc20 inputAmount, sell = minOutput erc20 amount
   recipient: string, // buy = nftRecipient, sell = erc20 tokenRecipient
-  deadline: number
+  deadline: number,
+  extra: {
+    // Array of prices the pool will sell/buy at
+    prices: string[]
+  }
 }
 
 /**

@@ -33,6 +33,9 @@ export class Router {
   public fillBuyOrderTx(
     taker: string,
     order: Order,
+    options?: {
+      recipient?: string;
+    }
   ): TxData {
     return {
       from: taker,
@@ -41,14 +44,46 @@ export class Router {
         this.contract.interface.encodeFunctionData(
           "swapTokensForNfts", [
             order.params.swapList.map((swap) => { return [swap.pool, swap.nftIds, swap.swapData]}),
-            order.params.amount,
-            order.params.recipient,
-            order.params.deadline,
+            order.params.extra.prices[0] ?? 0,
+            options?.recipient ?? taker,
+            Math.floor(Date.now() / 1000) + 10 * 60, // deadline
         ]
       )
     }
   };
-}
 
+  public async fillSellOrder(
+    taker: Signer,
+    order: Order,
+  ): Promise<ContractTransaction> {
+    const tx = this.fillSellOrderTx(await taker.getAddress(), order);
+    return taker.sendTransaction(tx);
+  }
 
   // --- TRADING ERC20 TOKENS FOR NFTs
+
+  public fillSellOrderTx(
+    taker: string,
+    order: Order,
+    options?: {
+      recipient?: string;
+    }
+  ): TxData {
+    return {
+      from: taker,
+      to: this.contract.address,
+      data:
+        this.contract.interface.encodeFunctionData(
+          "swapNftsForTokens", [
+            order.params.swapList.map((swap) => { return [swap.pool, swap.nftIds, swap.lpIds, swap.permitterData, swap.swapData]}),
+            order.params.extra.prices[0] ?? 0,
+            options?.recipient ?? taker,
+            Math.floor(Date.now() / 1000) + 10 * 60, // deadline
+        ]
+      )
+    }
+  };
+
+
+
+}

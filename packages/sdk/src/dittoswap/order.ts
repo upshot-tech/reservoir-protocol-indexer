@@ -24,14 +24,17 @@ const normalize = (order: Types.OrderParams): Types.OrderParams => {
   return {
     swapList: order.swapList.map((swap) => { 
       return { 
-        pool: lc(swap.pool),
-        nftIds: swap.nftIds, 
-        swapData: swap.swapData,
-        lpIds: swap.lpIds,
-        permitterData: swap.permitterData
+        pool: lc(s(swap.pool)),
+        nftIds: swap.nftIds.map(s), 
+        swapData: s(swap.swapData),
+        lpIds: swap.lpIds ? swap.lpIds.map(s): undefined,
+        permitterData: swap.permitterData ? s(swap.permitterData) : undefined
       }}),
-    amount: order.amount,
-    recipient: lc(order.recipient),
-    deadline: order.deadline
+    amount: s(order.amount),
+    recipient: lc(s(order.recipient)),
+    deadline: n(order.deadline),
+    extra: {
+      prices: order.extra.prices.map(s)
+    }
   };
 };

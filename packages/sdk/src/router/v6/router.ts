@@ -3531,6 +3531,25 @@ export class Router {
 
           break;
         }
+    
+        case "dittoswap": {
+          const order = detail.order as Sdk.Dittoswap.Order;
+          const module = this.contracts.dittoswapModule;
+          const router = new Sdk.Dittoswap.Router(this.chainId);
+
+          executionsWithDetails.push({
+            detail,
+            execution: {
+              module: module.address,
+              data: router.fillSellOrderTx(taker, order).data,
+              value: 0,
+            }
+          });
+
+          success[detail.orderId] = true;
+
+          break;
+        }
 
         case "collectionxyz": {
           const order = detail.order as Sdk.CollectionXyz.Order;
