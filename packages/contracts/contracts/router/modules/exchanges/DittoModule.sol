@@ -40,7 +40,7 @@ contract DittoModule is BaseExchangeModule {
                 /*uint8 error*/,
                 /*uint256 newSpotPrice*/, 
                 /*uint256 newDelta*/, 
-                uint256 price,//uint256 inputAmount
+                uint256 price, // (uint256 inputAmount)
                 /*uint256 protocolFee*/
             ) = pairs[i].getBuyNftQuote(1, "");
             tokenIds[0] = nftIds[i];
