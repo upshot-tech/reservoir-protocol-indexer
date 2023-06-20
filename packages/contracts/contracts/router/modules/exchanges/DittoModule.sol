@@ -5,7 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import {BaseExchangeModule} from "./BaseExchangeModule.sol";
 import {BaseModule} from "../BaseModule.sol";
-import {ISudoswapRouter} from "../../../interfaces/ISudoswapRouter.sol";
+import {IDittoPool} from "../../../interfaces/IDittoPool.sol";
 
 contract DittoModule is BaseExchangeModule {
 
@@ -17,10 +17,10 @@ contract DittoModule is BaseExchangeModule {
 
     receive() external payable {}
 
-    // --- Single ERC20 listing ---
+    // --- Multiple ERC20 listing ---
 
     function buyWithERC20(
-        ISudoswapPairV2[] calldata pairs,
+        IDittoPool[] calldata pairs,
         uint256[] calldata nftIds,
         ERC20ListingParams calldata params,
         Fee[] calldata fees
@@ -31,13 +31,44 @@ contract DittoModule is BaseExchangeModule {
         refundERC20Leftover(params.refundTo, params.token)
         chargeERC20Fees(fees, params.token, params.amount)
     {
-        // Execute fill
-        
- 
-        try SUDOSWAP_ROUTER.swapETHForSpecificNFTs{value: value}(swapList, payable(ethRecipient), nftRecipient, deadline) {
-        } catch {
-            if (revertIfIncomplete) {
-                revert UnsuccessfulFill();
+        uint256[] memory tokenIds = new uint256[](1);
+
+        uint256 pairsLength = pairs.length;
+        for (uint256 i; i < pairsLength; ) {
+            // Fetch the current price
+            (, , , uint256 price, , ) = pairs[i].getBuyNFTQuote(nftIds[i], 1);
+            tokenIds[0] = nftIds[i];
+
+            // Approve the pair if needed
+            _approveERC20IfNeeded(params.token, address(pairs[i]), params.amount);
+
+            // Execute fill
+            try {
+
+                SwapTokensForNftsArgs memory args = SwapTokensForNftsArgs({
+                    nftIds: tokenIds,
+                    maxExpectedTokenInput: price,
+                    tokenSender: address(this),
+                    nftRecipient: params.fillTo,
+                    swapData: ""
+                });
+                
+                //uint256[] nftIds; (tokenIds)
+                //uint256 maxExpectedTokenInput; (price)
+                //address tokenSender;
+                //address nftRecipient; (params.fillTo)
+                //bytes swapData; 
+
+                pairs[i].swapTokensForNfts(args);
+
+            } catch {
+                if (params.revertIfIncomplete) {
+                    revert UnsuccessfulFill();
+                }
+            }
+
+            unchecked {
+                ++i;
             }
         }
     }
