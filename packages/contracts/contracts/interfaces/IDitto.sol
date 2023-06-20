@@ -36,7 +36,7 @@ interface IDittoPool {
 
     function nft() external returns (IERC721);
 
-    function token() external returns (IERC20);
+    function token() external returns (address);
 
     /**
      * @notice Read-only function used to query the bonding curve for buy pricing info.
