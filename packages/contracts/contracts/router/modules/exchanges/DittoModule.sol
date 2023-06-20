@@ -5,7 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import {BaseExchangeModule} from "./BaseExchangeModule.sol";
 import {BaseModule} from "../BaseModule.sol";
-import {IDittoPool} from "../../../interfaces/IDittoPool.sol";
+import {IDittoPool} from "../../../interfaces/IDitto.sol";
 
 contract DittoModule is BaseExchangeModule {
 
@@ -36,36 +36,28 @@ contract DittoModule is BaseExchangeModule {
         uint256 pairsLength = pairs.length;
         for (uint256 i; i < pairsLength; ) {
             // Fetch the current price
-            (, , , uint256 price, , ) = pairs[i].getBuyNFTQuote(nftIds[i], 1);
+            (
+                /*uint8 error*/,
+                /*uint256 newSpotPrice*/, 
+                /*uint256 newDelta*/, 
+                uint256 price,//uint256 inputAmount
+                /*uint256 protocolFee*/
+            ) = pairs[i].getBuyNftQuote(1, "");
             tokenIds[0] = nftIds[i];
 
             // Approve the pair if needed
             _approveERC20IfNeeded(params.token, address(pairs[i]), params.amount);
 
             // Execute fill
-            try {
+            IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
+                nftIds: tokenIds,
+                maxExpectedTokenInput: price,
+                tokenSender: address(this),
+                nftRecipient: params.fillTo,
+                swapData: ""
+            }); 
 
-                SwapTokensForNftsArgs memory args = SwapTokensForNftsArgs({
-                    nftIds: tokenIds,
-                    maxExpectedTokenInput: price,
-                    tokenSender: address(this),
-                    nftRecipient: params.fillTo,
-                    swapData: ""
-                });
-                
-                //uint256[] nftIds; (tokenIds)
-                //uint256 maxExpectedTokenInput; (price)
-                //address tokenSender;
-                //address nftRecipient; (params.fillTo)
-                //bytes swapData; 
-
-                pairs[i].swapTokensForNfts(args);
-
-            } catch {
-                if (params.revertIfIncomplete) {
-                    revert UnsuccessfulFill();
-                }
-            }
+            pairs[i].swapTokensForNfts(args);
 
             unchecked {
                 ++i;
@@ -75,7 +67,7 @@ contract DittoModule is BaseExchangeModule {
 
 
 
-  // --- ERC721/1155 hooks ---
+  // --- ERC721 hooks ---
 
   function onERC721Received(
     address, // operator,
@@ -90,31 +82,4 @@ contract DittoModule is BaseExchangeModule {
     return this.onERC721Received.selector;
   }
 
-  function onERC1155Received(
-    address, // operator
-    address, // from
-    uint256, // tokenId
-    uint256, // amount
-    bytes calldata data
-  ) external returns (bytes4) {
-    if (data.length > 0) {
-      _makeCall(router, data, 0);
-    }
-
-    return this.onERC1155Received.selector;
-  }
-
-  // --- Internal methods ---
-
-  function isERC1155Pair(ISudoswapPairV2.PairVariant vaiant) internal pure returns (bool) {
-    return
-      ISudoswapPairV2.PairVariant.ERC1155_ERC20 == vaiant ||
-      ISudoswapPairV2.PairVariant.ERC1155_ETH == vaiant;
-  }
-
-  function isETHPair(ISudoswapPairV2.PairVariant vaiant) internal pure returns (bool) {
-    return
-      ISudoswapPairV2.PairVariant.ERC721_ETH == vaiant ||
-      ISudoswapPairV2.PairVariant.ERC1155_ETH == vaiant;
-  }
 }
