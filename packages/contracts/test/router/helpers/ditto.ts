@@ -1,7 +1,8 @@
 import { BigNumberish } from "@ethersproject/bignumber";
 import { AddressZero } from "@ethersproject/constants";
 import { Contract } from "@ethersproject/contracts";
-import * as Sdk from "@reservoir0x/sdk/src";
+import * as Sdk from "../../../../sdk/src";
+
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { ethers } from "hardhat";
 
@@ -28,7 +29,7 @@ export const setupDittoListings = async (listings: DittoListing[]) => {
   const chainId = getChainId();
 
   const factory = new Contract(
-    Sdk.SudoswapV2.Addresses.PairFactory[chainId],
+    Sdk.Ditto.Addresses.PoolFactory[chainId],
     FactoryAbi,
     ethers.provider
   );
