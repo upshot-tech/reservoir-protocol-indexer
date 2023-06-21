@@ -12,7 +12,6 @@ import { DittoListing, setupDittoListings } from "../helpers/ditto";
 
 import {
   bn,
-  getChainId,
   getRandomBoolean,
   getRandomFloat,
   getRandomInteger,
@@ -21,8 +20,8 @@ import {
   setupTokens,
 } from "../../utils";
 
-describe("[ReservoirV6_0_1] Sudoswap listings", () => {
-  const chainId = getChainId();
+describe("[ReservoirV6_0_1] Ditto listings", () => {
+  const chainId = 5; //TODO: replace with getChainId() once deployed to mainnet
 
   let deployer: SignerWithAddress;
   let alice: SignerWithAddress;
@@ -157,7 +156,7 @@ describe("[ReservoirV6_0_1] Sudoswap listings", () => {
 
     // Fetch pre-state
 
-    const ethBalancesBefore = await getBalances(Sdk.Common.Addresses.Eth[chainId]);
+    const ethBalancesBefore = await getBalances(erc20.address);
 
     // Execute
 
@@ -167,7 +166,7 @@ describe("[ReservoirV6_0_1] Sudoswap listings", () => {
 
     // Fetch post-state
 
-    const ethBalancesAfter = await getBalances(Sdk.Common.Addresses.Eth[chainId]);
+    const ethBalancesAfter = await getBalances(erc20.address);
 
     // Checks
 
@@ -222,7 +221,7 @@ describe("[ReservoirV6_0_1] Sudoswap listings", () => {
       for (const chargeFees of [false, true]) {
         for (const revertIfIncomplete of [false, true]) {
           it(
-            "[eth]" +
+            "[eth]" + //TODO: 'eth' is definetly incorrect...
               `${multiple ? "[multiple-orders]" : "[single-order]"}` +
               `${partial ? "[partial]" : "[full]"}` +
               `${chargeFees ? "[fees]" : "[no-fees]"}` +
