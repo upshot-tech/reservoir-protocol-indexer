@@ -7,7 +7,8 @@ import { ethers } from "hardhat";
 
 import { bn, getChainId } from "../../utils";
 
-import FactoryAbi from "@reservoir0x/sdk/src/sudoswap-v2/abis/Factory.json";
+//import { setupSudoswapTestContract, addresTokenPDB, addresPoolPDB } from "../helpers/sudoswap";
+import FactoryAbi from "../../../../sdk/src/ditto/abis/Factory.json";
 
 // --- Listings ---
 
@@ -40,8 +41,9 @@ export const setupDittoListings = async (listings: DittoListing[]) => {
       .connect(seller)
       .setApprovalForAll(Sdk.SudoswapV2.Addresses.PairFactory[chainId], true);
 
+    /*  
     // Get the pair address by making a static call to the deploy method
-    const pair = await factory.connect(seller).callStatic.createPairERC721ETH(
+    const pair = await factory.connect(seller).callStatic.createDittoPool( //returns (IDittoPool dittoPool, uint256 lpId, IPoolManager poolManager, IPermitter permitter)
       nft.contract.address,
       Sdk.SudoswapV2.Addresses.LinearCurve[chainId],
       seller.address,
@@ -52,6 +54,7 @@ export const setupDittoListings = async (listings: DittoListing[]) => {
       AddressZero,
       isCancelled ? [] : [nft.id]
     );
+    */
 
     // Actually deploy the pair
     await factory.connect(seller).createPairERC721ETH(
@@ -67,68 +70,6 @@ export const setupDittoListings = async (listings: DittoListing[]) => {
     );
 
     listing.order = new Sdk.SudoswapV2.Order(chainId, {
-      pair,
-      extra: {
-        prices: [price.toString()],
-      },
-    });
-  }
-};
-
-// --- Offers ---
-
-export type SudoswapOffer = {
-  buyer: SignerWithAddress;
-  nft: {
-    contract: Contract;
-    id: number;
-  };
-  price: BigNumberish;
-  // Whether the order is to be cancelled
-  isCancelled?: boolean;
-  order?: Sdk.SudoswapV2.Order;
-};
-
-export const setupSudoswapOffers = async (offers: SudoswapOffer[]) => {
-  const chainId = getChainId();
-
-  const factory = new Contract(
-    Sdk.SudoswapV2.Addresses.PairFactory[chainId],
-    FactoryAbi,
-    ethers.provider
-  );
-  for (const offer of offers) {
-    const { buyer, nft, price, isCancelled } = offer;
-
-    // Get the pair address by making a static call to the deploy method
-    const pair = await factory.connect(buyer).callStatic.createPairERC721ETH(
-      nft.contract.address,
-      Sdk.SudoswapV2.Addresses.LinearCurve[chainId],
-      buyer.address,
-      0, // TOKEN
-      0,
-      0,
-      price,
-      AddressZero,
-      [],
-      { value: isCancelled ? bn(0) : price }
-    );
-
-    // Actually deploy the pair
-    await factory.connect(buyer).createPairERC721ETH(
-      nft.contract.address,
-      Sdk.SudoswapV2.Addresses.LinearCurve[chainId],
-      buyer.address,
-      0, // TOKEN
-      0,
-      0,
-      price,
-      AddressZero,
-      [],
-      { value: isCancelled ? bn(0) : price }
-    );
-
-    offer.order = new Sdk.SudoswapV2.Order(chainId, {
       pair,
       extra: {
         prices: [price.toString()],
