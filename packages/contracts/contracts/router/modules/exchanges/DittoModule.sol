@@ -21,6 +21,7 @@ contract DittoModule is BaseExchangeModule {
 
     function buyWithERC20(
         IDittoPool[] calldata pairs,
+        // Token ids for ERC721 pairs, amounts for ERC1155 pairs
         uint256[] calldata nftIds,
         ERC20ListingParams calldata params,
         Fee[] calldata fees
@@ -37,12 +38,13 @@ contract DittoModule is BaseExchangeModule {
         for (uint256 i; i < pairsLength; ) {
             // Fetch the current price
             (
-                /*uint8 error*/,
-                /*uint256 newSpotPrice*/, 
-                /*uint256 newDelta*/, 
-                uint256 price, // (uint256 inputAmount)
+                ,/*uint8 error*/
+                ,/*uint256 newSpotPrice*/ 
+                ,/*uint256 newDelta*/
+                uint256 price, /*uint256 inputAmount*/
                 /*uint256 protocolFee*/
             ) = pairs[i].getBuyNftQuote(1, "");
+            
             tokenIds[0] = nftIds[i];
 
             // Approve the pair if needed
