@@ -7,7 +7,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { ExecutionInfo } from "../helpers/router";
-//import { SudoswapListing, setupSudoswapListings } from "../helpers/sudoswap";
+
 import { DittoListing, setupDittoListings } from "../helpers/ditto";
 
 import {
@@ -18,6 +18,7 @@ import {
   getRandomInteger,
   reset,
   setupNFTs,
+  setupTokens,
 } from "../../utils";
 
 describe("[ReservoirV6_0_1] Sudoswap listings", () => {
@@ -30,6 +31,7 @@ describe("[ReservoirV6_0_1] Sudoswap listings", () => {
   let david: SignerWithAddress;
   let emilio: SignerWithAddress;
 
+  let erc20: Contract;
   let erc721: Contract;
   let router: Contract;
   let dittoModule: Contract;
@@ -37,6 +39,7 @@ describe("[ReservoirV6_0_1] Sudoswap listings", () => {
   beforeEach(async () => {
     [deployer, alice, bob, carol, david, emilio] = await ethers.getSigners();
 
+    ({ erc20 } = await setupTokens(deployer));
     ({ erc721 } = await setupNFTs(deployer));
 
     router = await ethers
@@ -45,34 +48,22 @@ describe("[ReservoirV6_0_1] Sudoswap listings", () => {
     dittoModule = await ethers
       .getContractFactory("DittoModule", deployer)
       .then((factory) =>
-        factory.deploy(deployer.address, router.address, Sdk.Sudoswap.Addresses.Router[chainId])
+        factory.deploy(deployer.address, router.address)
       );
   });
 
-  const getBalances = async (token: string) => {
-    if (token === Sdk.Common.Addresses.Eth[chainId]) {
-      return {
-        alice: await ethers.provider.getBalance(alice.address),
-        bob: await ethers.provider.getBalance(bob.address),
-        carol: await ethers.provider.getBalance(carol.address),
-        david: await ethers.provider.getBalance(david.address),
-        emilio: await ethers.provider.getBalance(emilio.address),
-        router: await ethers.provider.getBalance(router.address),
-        dittoModule: await ethers.provider.getBalance(dittoModule.address),
-      };
-    } else {
-      const contract = new Sdk.Common.Helpers.Erc20(ethers.provider, token);
-      return {
-        alice: await contract.getBalance(alice.address),
-        bob: await contract.getBalance(bob.address),
-        carol: await contract.getBalance(carol.address),
-        david: await contract.getBalance(david.address),
-        emilio: await contract.getBalance(emilio.address),
-        router: await contract.getBalance(router.address),
-        dittoModule: await contract.getBalance(dittoModule.address),
-      };
-    }
-  };
+    const getBalances = async (token: string) => {
+        const contract = new Sdk.Common.Helpers.Erc20(ethers.provider, token);
+        return {
+            alice: await contract.getBalance(alice.address),
+            bob: await contract.getBalance(bob.address),
+            carol: await contract.getBalance(carol.address),
+            david: await contract.getBalance(david.address),
+            emilio: await contract.getBalance(emilio.address),
+            router: await contract.getBalance(router.address),
+            dittoModule: await contract.getBalance(dittoModule.address),
+        };
+    };
 
   afterEach(reset);
 
@@ -92,7 +83,7 @@ describe("[ReservoirV6_0_1] Sudoswap listings", () => {
     // Taker: Carol
     // Fee recipient: Emilio
 
-    const listings: SudoswapListing[] = [];
+    const listings: DittoListing[] = [];
     const feesOnTop: BigNumber[] = [];
     for (let i = 0; i < listingsCount; i++) {
       listings.push({
@@ -223,7 +214,7 @@ describe("[ReservoirV6_0_1] Sudoswap listings", () => {
 
     // Router is stateless
     expect(ethBalancesAfter.router).to.eq(0);
-    expect(ethBalancesAfter.sudoswapModule).to.eq(0);
+    expect(ethBalancesAfter.dittoModule).to.eq(0);
   };
 
   for (const multiple of [false, true]) {

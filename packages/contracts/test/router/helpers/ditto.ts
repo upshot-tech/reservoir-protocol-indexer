@@ -25,6 +25,7 @@ export type DittoListing = {
   order?: Sdk.SudoswapV2.Order;
 };
 
+
 export const setupDittoListings = async (listings: DittoListing[]) => {
   const chainId = getChainId();
 
@@ -40,7 +41,7 @@ export const setupDittoListings = async (listings: DittoListing[]) => {
     await nft.contract.connect(seller).mint(nft.id);
     await nft.contract
       .connect(seller)
-      .setApprovalForAll(Sdk.SudoswapV2.Addresses.PairFactory[chainId], true);
+      .setApprovalForAll(Sdk.Ditto.Addresses.PoolFactory[chainId], true);
 
     /*  
     // Get the pair address by making a static call to the deploy method
@@ -57,8 +58,53 @@ export const setupDittoListings = async (listings: DittoListing[]) => {
     );
     */
 
+
+
+
+
+
+
+    // struct PoolTemplate {
+    //     address token; // ERC20 token address
+    //     address nft; // the address of the NFT collection that we are creating a pool for
+    //     uint96 feeLp; // set by owner, paid to LPers only when they are the counterparty in a trade
+    //     address owner; // owner creating the pool
+    //     uint96 feeAdmin; // set by owner, paid to admin fee recipient
+    //     uint128 delta; // the delta of the pool, see bonding curve documentation
+    //     uint128 basePrice; // the base price of the pool, see bonding curve documentation
+    //     uint256[] nftIdList; // the token IDs of NFTs to deposit into the pool
+    //     uint256 initialTokenBalance; // the number of ERC20 tokens to transfer to the pool
+    //     bytes templateInitData; // initial data to pass to the pool contract in its initializer
+    //     bytes referrer; // the address of the referrer
+    // }
+    
+    // struct PoolManagerTemplate {
+    //     uint256 templateIndex;
+    //     bytes templateInitData;
+    // }
+    
+    // struct PermitterTemplate {
+    //     uint256 templateIndex;
+    //     bytes templateInitData;
+    //     bytes liquidityDepositPermissionData;
+    // }
+
+
+    const poolTemplate = [
+        false, //bool isPrivatePool
+        0, //uint256 templateIndex
+    ];
+
+
+
+
+
+
     // Actually deploy the pair
-    await factory.connect(seller).createPairERC721ETH(
+    await factory.connect(seller).createDittoPool(
+        // PoolTemplate memory poolTemplate_,
+        // PoolManagerTemplate calldata poolManagerTemplate_,
+        // PermitterTemplate calldata permitterTemplate_
       nft.contract.address,
       Sdk.SudoswapV2.Addresses.LinearCurve[chainId],
       seller.address,
