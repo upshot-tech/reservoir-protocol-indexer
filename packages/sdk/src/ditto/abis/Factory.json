@@ -1,5 +1,18 @@
 [
   {
+    "inputs": [],
+    "name": "lpNft",
+    "outputs": [
+      {
+        "internalType": "contract LpNft",
+        "name": "lpNft_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "components": [
