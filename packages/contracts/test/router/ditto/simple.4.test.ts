@@ -27,7 +27,7 @@ describe("DittoPoolFactory", () => {
   let bob: SignerWithAddress;
 
   let token: Contract;
-  let erc721: Contract;
+  
 
   let initialTokenBalance: any;
  
@@ -44,7 +44,7 @@ describe("DittoPoolFactory", () => {
         ethers.provider 
     );
 
-    initialTokenBalance = parseEther("10");
+    initialTokenBalance = parseEther("1000");
 
     
 
@@ -83,7 +83,7 @@ describe("DittoPoolFactory", () => {
         ethers.provider 
     );
 
-    tokenId = 2;
+    tokenId = 3;
 
 
 
@@ -121,22 +121,23 @@ describe("DittoPoolFactory", () => {
       factory.deploy(deployer.address, router.address)
     );
 
-  
 
+    
+   
 
     const eRC20ListingParams = [
         deployer.address, //address fillTo;
         deployer.address, //address refundTo;
         false, //bool revertIfIncomplete;
         // The ERC20 payment token for the listings
-        token.address, //IERC20 token;
+        token.address, //"0x8cAa8de40048C4c840014BdEc44373548b61568d", //token.address, //IERC20 token;
         // The total amount of `token` to be provided when filling
-        initialTokenBalance //uint256 amount;
+        parseEther("10") //uint256 amount;
     ];
     
     const fee = [
         alice.address, //address recipient;
-        parseEther("0.1") //uint256 amount;
+        parseEther("0.0") //uint256 amount;
     ];
 
     
@@ -153,7 +154,7 @@ describe("DittoPoolFactory", () => {
     const executions = [
           xDittoModule.address, //module: 
           data, //data: 
-          0//parseEther("5") //value: 
+          0 //parseEther("5") //value: 
     ];
 
     // struct ExecutionInfo {
@@ -161,16 +162,23 @@ describe("DittoPoolFactory", () => {
     //     bytes data;
     //     uint256 value;
     //   }
+
     await token.connect(deployer).approve(router.address, initialTokenBalance);
+    await token.connect(deployer).approve(dittoPool.address, initialTokenBalance);
+    await token.connect(deployer).approve("0xE58bE749c807b86EEdf31d1762314F501A26F763", initialTokenBalance);
+    await token.connect(deployer).approve(xDittoModule.address, initialTokenBalance);
 
-    console.log("xDittoModule.address: ", xDittoModule.address);
+    //console.log("xDittoModule.address: ", xDittoModule.address);
 
+    // await router.connect(deployer).execute([executions], {
+    //     value: parseEther("5"),
+    // });
     await router.connect(deployer).execute([executions]);
-
-    
 
 
   });
+
+
 
 
 });

@@ -34,6 +34,8 @@ interface IDittoPool {
         uint256 protocol;
     }
 
+    function getLpNft() external view returns (address);
+
     function nft() external returns (IERC721);
 
     function token() external returns (address);

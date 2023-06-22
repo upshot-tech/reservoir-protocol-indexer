@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import "hardhat/console.sol";
+
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import {BaseExchangeModule} from "./BaseExchangeModule.sol";
@@ -28,11 +30,14 @@ contract DittoModule is BaseExchangeModule {
     )
         external
         payable
-        nonReentrant
-        refundERC20Leftover(params.refundTo, params.token)
-        chargeERC20Fees(fees, params.token, params.amount)
+        //nonReentrant
+        //refundERC20Leftover(params.refundTo, params.token)
+        //chargeERC20Fees(fees, params.token, params.amount)
     {
-        uint256[] memory tokenIds = new uint256[](1);
+
+        console.log("--- xxx --- ");
+
+        //uint256[] memory tokenIds = new uint256[](1);
 
         uint256 pairsLength = pairs.length;
         for (uint256 i; i < pairsLength; ) {
@@ -45,16 +50,22 @@ contract DittoModule is BaseExchangeModule {
                 /*uint256 protocolFee*/
             ) = pairs[i].getBuyNftQuote(1, "");
             
-            tokenIds[0] = nftIds[i];
+            //tokenIds[0] = nftIds[i];
+
+            uint256[] memory nftIdList = new uint256[](1);
+            nftIdList[0] = 2;
+            
+            
+            console.log("price ::", price);
 
             // Approve the pair if needed
             _approveERC20IfNeeded(params.token, address(pairs[i]), params.amount);
 
             // Execute fill
             IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
-                nftIds: tokenIds,
+                nftIds: nftIdList, //tokenIds,
                 maxExpectedTokenInput: price,
-                tokenSender: address(this),
+                tokenSender: params.fillTo,
                 nftRecipient: params.fillTo,
                 swapData: ""
             }); 
