@@ -20,24 +20,20 @@ import {
 } from "../../utils";
 
 describe("DittoPoolFactory", () => {
-  const chainId = 5; //TODO: replace with getChainId() once deployed to mainnet
+
+
 
   let deployer: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
-  let carol: SignerWithAddress;
-  let david: SignerWithAddress;
-  let emilio: SignerWithAddress;
 
   let erc20: Contract;
   let erc721: Contract;
-
+ 
 
   beforeEach(async () => {
-    // [deployer, alice, bob, carol, david, emilio] = await ethers.getSigners();
+    [deployer, alice, bob] = await ethers.getSigners();
 
-    // ({ erc20 } = await setupTokens(deployer));
-    // ({ erc721 } = await setupNFTs(deployer));
   });
 
 
@@ -46,6 +42,53 @@ describe("DittoPoolFactory", () => {
     const factory: Contract = await setupDittoPool();
 
     console.log("lpNft: ", await factory.lpNft());
+
+    ({ erc20 } = await setupTokens(deployer));
+    ({ erc721 } = await setupNFTs(deployer));
+
+    const initialTokenBalance = parseEther("1");
+
+    await erc20.connect(deployer).mint(initialTokenBalance);
+    await erc20.balanceOf(deployer.address).then((balance: any) => {
+      console.log("balance: ", balance.toString());
+    });
+
+    const poolManagerTemplate = [
+      "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+      new Uint8Array([])
+    ];
+
+    const permitterTemplate = [
+      "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+      new Uint8Array([]),
+      new Uint8Array([])
+    ];
+
+    const poolTemplate = [
+        false, //bool isPrivatePool
+        0, //uint256 templateIndex
+        erc20.address, //address token
+        erc721.address, //address nft
+        0, //uint96 feeLp
+        deployer.address, //address owner
+        0, //uint96 feeAdmin
+        parseEther("1.1"), //uint128 delta
+        parseEther("1"), //uint128 basePrice
+        [], //uint256[] nftIdList
+        initialTokenBalance, //uint256 initialTokenBalance
+        new Uint8Array([]), //bytes templateInitData
+        new Uint8Array([]) //bytes referrer
+    ];
+
+    await erc20.connect(deployer).approve(factory.address, initialTokenBalance);
+
+    // Actually deploy the pair
+    await factory.connect(deployer).createDittoPool(
+      poolTemplate,
+      poolManagerTemplate,
+      permitterTemplate
+    );
+
 
     
   });
