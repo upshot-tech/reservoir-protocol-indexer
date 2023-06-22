@@ -36,8 +36,13 @@ describe("DittoPoolFactory", () => {
 
   });
 
+  let router: Contract;
 
   it("example method", async () => {
+
+    router = await ethers
+    .getContractFactory("ReservoirV6_0_1", deployer)
+    .then((factory) => factory.deploy());
 
     const factory: Contract = await setupDittoPool();
 
@@ -83,11 +88,14 @@ describe("DittoPoolFactory", () => {
     await erc20.connect(deployer).approve(factory.address, initialTokenBalance);
 
     // Actually deploy the pair
-    await factory.connect(deployer).createDittoPool(
+    let dittoPool = await factory.connect(deployer).createDittoPool(
       poolTemplate,
       poolManagerTemplate,
       permitterTemplate
     );
+    
+    //let www = await dittoPool.wait();
+
 
 
     
