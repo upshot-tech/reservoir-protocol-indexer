@@ -314,6 +314,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
               });
             } else {
               await idb.none(
+                // TODO also here - using Infinity as end valid_between? 
                 `
                   UPDATE orders SET
                     fillability_status = 'fillable',

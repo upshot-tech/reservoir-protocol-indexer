@@ -1,21 +1,18 @@
 import { idb } from "@/common/db";
 import { fromBuffer, toBuffer } from "@/common/utils";
 
-export enum DittoswapPoolKind {
-  TOKEN = 0,
-  NFT = 1,
-  TRADE = 2,
-}
 
 export type DittoswapPool = {
   address: string;
   nft: string;
   token: string;
-  bondingCurve: string;
-  poolKind: DittoswapPoolKind;
-  pairKind: number;
-  propertyChecker: string;
-  tokenId?: string;
+  permitter: string;
+  isPrivatePool: boolean;
+  initialized: boolean;
+  template: string;
+  fee: number;
+  delta: number;
+  adminFeeRecipient: string;
 };
 
 export const saveDittoswapPool = async (dittoswapPool: DittoswapPool) => {
@@ -25,20 +22,24 @@ export const saveDittoswapPool = async (dittoswapPool: DittoswapPool) => {
         address,
         nft,
         token,
-        bonding_curve,
-        pool_kind,
-        pair_kind,
-        property_checker,
-        token_id
+        permitter,
+        isPrivatePool,
+        initialized,
+        template,
+        fee,
+        delta,
+        adminFeeRecipient
       ) VALUES (
         $/address/,
         $/nft/,
         $/token/,
-        $/bondingCurve/,
-        $/poolKind/,
-        $/pairKind/,
-        $/propertyChecker/,
-        $/tokenId/
+        $/permitter/,
+        $/isPrivatePool/,
+        $/initialized/,
+        $/template/,
+        $/fee/,
+        $/delta/,
+        $/adminFeeRecipient/
       )
       ON CONFLICT DO NOTHING
     `,
@@ -46,11 +47,13 @@ export const saveDittoswapPool = async (dittoswapPool: DittoswapPool) => {
       address: toBuffer(dittoswapPool.address),
       nft: toBuffer(dittoswapPool.nft),
       token: toBuffer(dittoswapPool.token),
-      bondingCurve: toBuffer(dittoswapPool.bondingCurve),
-      poolKind: dittoswapPool.poolKind,
-      pairKind: dittoswapPool.pairKind,
-      propertyChecker: toBuffer(dittoswapPool.propertyChecker),
-      tokenId: dittoswapPool.tokenId,
+      permitter: toBuffer(dittoswapPool.permitter),
+      isPrivatePool: dittoswapPool.isPrivatePool,
+      initialized: dittoswapPool.initialized,
+      template: toBuffer(dittoswapPool.template),
+      fee: dittoswapPool.fee,
+      delta: dittoswapPool.delta,
+      adminFeeRecipient: toBuffer(dittoswapPool.adminFeeRecipient)
     }
   );
 
@@ -64,25 +67,29 @@ export const getDittoswapPool = async (address: string): Promise<DittoswapPool> 
         dittoswap_pools.address,
         dittoswap_pools.nft,
         dittoswap_pools.token,
-        dittoswap_pools.bonding_curve,
-        dittoswap_pools.pool_kind,
-        dittoswap_pools.pair_kind,
-        dittoswap_pools.property_checker,
-        dittoswap_pools.token_id
+        dittoswap_pools.permitter,
+        dittoswap_pools.isPrivatePool,
+        dittoswap_pools.initialized,
+        dittoswap_pools.template,
+        dittoswap_pools.fee,
+        dittoswap_pools.delta,
+        dittoswap_pools.adminFeeRecipient
       FROM dittoswap_pools
-      WHERE dittoswap_pools.address = $/address/
+      WHERE dittoswap_pools.nft = $/nft/
     `,
     { address: toBuffer(address) }
   );
 
   return {
-    address,
+    address: fromBuffer(result.address),
     nft: fromBuffer(result.nft),
     token: fromBuffer(result.token),
-    bondingCurve: fromBuffer(result.bonding_curve),
-    poolKind: result.pool_kind,
-    pairKind: result.pair_kind,
-    propertyChecker: fromBuffer(result.property_checker),
-    tokenId: result.token_id,
+    permitter: fromBuffer(result.permitter),
+    isPrivatePool: result.isPrivatePool,
+    initialized: result.initialized,
+    template: fromBuffer(result.template),
+    fee: result.fee,
+    delta: result.delta,
+    adminFeeRecipient: fromBuffer(result.nft)
   };
 };
