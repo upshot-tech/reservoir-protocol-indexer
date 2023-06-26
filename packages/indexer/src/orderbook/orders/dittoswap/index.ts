@@ -91,8 +91,8 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
 
       // Force recheck at most once per hour
       const recheckCondition = orderParams.forceRecheck
-        ? `AND orders.updated_at < to_timestamp(${orderParams.deadline - 3600})`
-        : `AND lower(orders.valid_between) < to_timestamp(${orderParams.deadline})`;
+        ? `AND orders.updated_at < to_timestamp(${orderParams.txTimestamp - 3600})`
+        : `AND lower(orders.valid_between) < to_timestamp(${orderParams.txTimestamp})`;
 
       // TODO : use two poolContracxts: one for Pool, one for RoyaltyRouter.
       // const royaltiesContract = new Contract(
@@ -189,16 +189,15 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
               UPDATE orders SET
                 fillability_status = 'cancelled',
                 expiration = to_timestamp(${orderParams.deadline}),
-                -- TODO should we use this? 
-                -- block_number = $/blockNumber/,
-                -- log_index = $/logIndex/,
+                block_number = $/blockNumber/,
+                log_index = $/logIndex/,
                 updated_at = now()
               WHERE orders.id = $/id/
                 ${recheckCondition}
             `,
             { id,
-              // blockNumber: orderParams.blockNumber,
-              // logIndex: orderParams.logIndex, 
+              blockNumber: orderParams.blockNumber,
+              logIndex: orderParams.logIndex, 
             }
           );
         } else {
@@ -322,8 +321,8 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
               const source = await sources.getOrInsert("dittoswap.xyz");
 
               // TODO: change into getting the fixed limit (not infinity? but sudo and nftx both have it)
-              const validFrom = `date_trunc('seconds', to_timestamp(${orderParams.deadline}))`;
-              const validTo = `'Infinity'`;
+              const validFrom = `date_trunc('seconds', to_timestamp(${orderParams.txTimestamp}))`;
+              const validTo = orderParams.deadline;
               orderValues.push({
                 id,
                 kind: "dittoswap",
@@ -422,11 +421,16 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                 UPDATE orders SET
                   fillability_status = 'no-balance',
                   expiration = to_timestamp(${orderParams.txTimestamp}),
+                  block_number = $/blockNumber/,
+                  log_index = $/logIndex/,
                   updated_at = now()
                 WHERE orders.id = $/id/
                 ${recheckCondition}
               `,
-              { id }
+              { id,
+                blockNumber: orderParams.blockNumber,
+                logIndex: orderParams.logIndex
+              }
             );
 
             results.push({
@@ -565,9 +569,8 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                   const sources = await Sources.getInstance();
                   const source = await sources.getOrInsert("dittoswap.xyz");
 
-                  const validFrom = `date_trunc('seconds', to_timestamp(${orderParams.deadline}))`;
-                  // TODO get validTo from contract (fixed time)
-                  const validTo = `'Infinity'`;
+                  const validFrom = `date_trunc('seconds', to_timestamp(${orderParams.txTimestamp}))`;
+                  const validTo = orderParams.deadline;
                   orderValues.push({
                     id,
                     kind: "dittoswap",
