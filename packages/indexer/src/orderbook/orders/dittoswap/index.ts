@@ -170,7 +170,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
         }[] = [
           {
             kind: "marketplace",
-            recipient: "0x6853f8865ba8e9fbd9c8cce3155ce5023fb7eeb0",
+            recipient: pool.adminFeeRecipient,
             bps: pool.fee,
           },
         ];
