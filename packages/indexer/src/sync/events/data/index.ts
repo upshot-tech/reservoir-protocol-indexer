@@ -80,7 +80,8 @@ export type EventKind =
   | "zora"
   | "looks-rare-v2"
   | "blend"
-  | "sudoswap-v2";
+  | "sudoswap-v2"
+  | "dittoswap";
 
 // Event sub-kind in each of the above protocol/standard
 export type EventSubKind =
@@ -253,6 +254,7 @@ export type EventSubKind =
   | "sudoswap-v2-delta-update"
   | "sudoswap-v2-new-erc721-pair"
   | "sudoswap-v2-new-erc1155-pair";
+  // TODO add here the EventData for DittoSwap
 
 export type EventData = {
   kind: EventKind;

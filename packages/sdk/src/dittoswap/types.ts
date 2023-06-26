@@ -1,7 +1,3 @@
-import {
-  BytesLike,
-  BigNumberish
-} from 'ethers'
 
 /**
  * Definition of the native order formats for the Ditto router contract

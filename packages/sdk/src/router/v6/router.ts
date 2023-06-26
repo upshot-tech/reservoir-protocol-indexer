@@ -1870,7 +1870,7 @@ export class Router {
         executionIndex: executions.length - 1,
       });
       // Mark the listings as successfully handled
-      for (const { orderId } of sudoswapDetails) {
+      for (const { orderId } of dittoswapDetails) {
         success[orderId] = true;
         orderIds.push(orderId);
       }
