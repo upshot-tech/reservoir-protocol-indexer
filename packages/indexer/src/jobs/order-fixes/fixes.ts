@@ -23,6 +23,7 @@ import * as x2y2Check from "@/orderbook/orders/x2y2/check";
 import * as zeroExV4Check from "@/orderbook/orders/zeroex-v4/check";
 import * as blurCheck from "@/orderbook/orders/blur/check";
 import * as nftxCheck from "@/orderbook/orders/nftx/check";
+import * as dittoSwapCheck from "@/orderbook/orders/dittoswap/check";
 import * as looksRareV2Check from "@/orderbook/orders/looks-rare-v2/check";
 
 const QUEUE_NAME = "order-fixes";
@@ -397,6 +398,44 @@ if (config.doBackgroundWork) {
                     return;
                   }
 
+                  break;
+                }
+
+                case "dittoswap": {
+                  try {
+                    await dittoSwapCheck.offChainCheck(result.id);
+
+                    // Fully refresh the order at most once per hour
+                    const order = new Sdk.DittoSwap.Order(config.chainId, result.raw_data);
+                    const cacheKey = `order-fixes:dittoswap:${order.params.pool}`;
+                    if (!redis.get(cacheKey)) {
+                      await redis.set(cacheKey, "locked", "EX", 3600);
+                      await orderbook.addToQueue([
+                        {
+                          kind: "dittoswap",
+                          info: {
+                            orderParams: {
+                              pool: order.params.pool,
+                              txHash: HashZero,
+                              txTimestamp: now(),
+                              txBlock: result.block_number,
+                              logIndex: result.log_index,
+                              forceRecheck: true,
+                            },
+                            metadata: {},
+                          },
+                        },
+                      ]);
+                    }
+
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  } catch (error: any) {
+                    if (error.message === "no-balance") {
+                      fillabilityStatus = "no-balance";
+                    } else {
+                      return;
+                    }
+                  }
                   break;
                 }
 
