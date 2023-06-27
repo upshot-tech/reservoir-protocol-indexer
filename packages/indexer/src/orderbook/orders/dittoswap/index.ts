@@ -14,7 +14,6 @@ import { bn, toBuffer } from "@/common/utils";
 import { config } from "@/config/index";
 import * as ordersUpdateById from "@/jobs/order-updates/by-id-queue";
 import { Sources } from "@/models/sources";
-import { DittoswapPoolKind } from "@/models/dittoswap-pools";
 import * as commonHelpers from "@/orderbook/orders/common/helpers";
 import {
   POOL_ORDERS_MAX_PRICE_POINTS_COUNT,

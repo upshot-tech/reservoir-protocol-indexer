@@ -39,6 +39,8 @@ import * as zora from "@/events-sync/data/zora";
 import * as looksRareV2 from "@/events-sync/data/looks-rare-v2";
 import * as blend from "@/events-sync/data/blend";
 import * as sudoswapV2 from "@/events-sync/data/sudoswap-v2";
+import * as dittoswap from "@/events-sync/data/dittoswap";
+
 
 // All events we're syncing should have an associated `EventData`
 // entry which dictates the way the event will be parsed and then
@@ -254,8 +256,20 @@ export type EventSubKind =
   | "sudoswap-v2-spot-price-update"
   | "sudoswap-v2-delta-update"
   | "sudoswap-v2-new-erc721-pair"
-  | "sudoswap-v2-new-erc1155-pair";
-  // TODO add here the EventData for DittoSwap
+  | "sudoswap-v2-new-erc1155-pair"
+  | "dittoswap-admin-set-protocol-fee"
+  | "dittoswap-admin-set-protocol-fee-multiplier"
+  | "dittoswap-pool-initialized"
+  | "dittoswap-change-base-price"
+  | "dittoswap-change-delta"
+  | "dittoswap-change-admin-fee-recipient"
+  | "dittoswap-change-admin-fee"
+  | "dittoswap-change-admin-lp-fee"
+  | "dittoswap-trade-swapped-tokens-for-nft"
+  | "dittoswap-trade-swapped-nft-for-tokens"
+  | "dittoswap-liquidity-added"
+  | "dittoswap-liquidity-removed"
+  ;
 
 export type EventData = {
   kind: EventKind;
@@ -435,6 +449,18 @@ const allEventData = [
   sudoswapV2.newERC721Pair,
   sudoswapV2.newERC1155Pair,
   treasure.bidAccepted,
+  dittoswap.adminSetProtocolFee,
+  dittoswap.adminSetProtocolFeeMultiplier,
+  dittoswap.poolinitialized,
+  dittoswap.changeBasePrice,
+  dittoswap.changeDelta,
+  dittoswap.changeAdminFeeRecipient,
+  dittoswap.changeAdminChangedAdminFee,
+  dittoswap.changeAdminChangedLpFee,
+  dittoswap.tradeSwappedTokensForNft,
+  dittoswap.tradeSwappedNftForTokens,
+  dittoswap.liquidityAdded,
+  dittoswap.liquidityRemoved
 ];
 
 export const getEventData = (events?: string[]) => {
