@@ -5,7 +5,7 @@ import _ from "lodash";
 import { logger } from "@/common/logger";
 import { redis } from "@/common/redis";
 import { config } from "@/config/index";
-import { idb, redb } from "@/common/db";
+import { idb, ridb } from "@/common/db";
 import { formatEth, fromBuffer } from "@/common/utils";
 import { getJoiPriceObject } from "@/common/joi";
 import { Orders } from "@/utils/orders";
@@ -26,7 +26,7 @@ export const queue = new Queue(QUEUE_NAME, {
 new QueueScheduler(QUEUE_NAME, { connection: redis.duplicate() });
 
 // BACKGROUND WORKER ONLY
-if (config.doBackgroundWork && config.doWebsocketServerWork) {
+if (config.doBackgroundWork && config.doWebsocketServerWork && config.kafkaBrokers.length > 0) {
   const worker = new Worker(
     QUEUE_NAME,
     async (job: Job) => {
@@ -215,7 +215,7 @@ const getOwners = async (tokenSetId: string): Promise<string[]> => {
 
   if (!owners) {
     owners = (
-      await redb.manyOrNone(
+      await ridb.manyOrNone(
         `
                 SELECT
                   DISTINCT nb.owner
