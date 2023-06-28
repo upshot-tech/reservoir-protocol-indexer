@@ -30,10 +30,17 @@ contract DittoModule is BaseExchangeModule {
     )
         external
         payable
-        //nonReentrant
-        //refundERC20Leftover(params.refundTo, params.token)
-        //chargeERC20Fees(fees, params.token, params.amount)
+        nonReentrant
+        refundERC20Leftover(params.refundTo, params.token)
+        chargeERC20Fees(fees, params.token, params.amount)
     {
+
+        console.log("pairs -->", address(pairs[0]));
+        console.log("nftIds -->", uint256(nftIds[0]));
+        console.log("params.token -->", address(params.token));
+        console.log("params.amount -->", uint256(params.amount));
+        console.log("params.refundTo -->", address(params.refundTo));
+        console.log("params.fillTo -->", address(params.fillTo));
 
         console.log("--- xxx --- ");
 
@@ -53,10 +60,14 @@ contract DittoModule is BaseExchangeModule {
             //tokenIds[0] = nftIds[i];
 
             uint256[] memory nftIdList = new uint256[](1);
-            nftIdList[0] = 2;
+            nftIdList[0] = 3;
             
+            console.log("price >>> ", price);
+            console.log("price >>> ", price);
+            console.log("price >>> ", price);
+            console.log("price >>> ", price);
+            console.log("price >>> ", price);
             
-            console.log("price ::", price);
 
             // Approve the pair if needed
             _approveERC20IfNeeded(params.token, address(pairs[i]), params.amount);
@@ -70,7 +81,20 @@ contract DittoModule is BaseExchangeModule {
                 swapData: ""
             }); 
 
-            pairs[i].swapTokensForNfts(args);
+            //pairs[i].swapTokensForNfts(args);
+
+            // make external call to this contract
+            bytes memory data = abi.encodeWithSelector(IDittoPool.swapTokensForNfts.selector, args);
+            (bool success, bytes memory result) = address(pairs[i]).call(data);
+
+            if (!success) {
+                // Next 5 lines from https://ethereum.stackexchange.com/a/83577
+                if (result.length < 68) revert();
+                assembly {
+                    result := add(result, 0x04)
+                }
+                revert(abi.decode(result, (string)));
+            }
 
             unchecked {
                 ++i;

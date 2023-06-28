@@ -40,6 +40,8 @@ interface IDittoPool {
 
     function token() external returns (address);
 
+    function test() external view returns (string memory);
+
     /**
      * @notice Read-only function used to query the bonding curve for buy pricing info.
      * @param numNfts The number of NFTs to buy out of the pair

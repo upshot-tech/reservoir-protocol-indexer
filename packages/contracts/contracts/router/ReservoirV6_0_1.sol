@@ -120,13 +120,23 @@ contract ReservoirV6_0_1 is ReentrancyGuard {
 
     console.log(" -- C -- ");
 
-    (bool success, ) = module.call{value: executionInfo.value}(executionInfo.data);
+    (bool success, bytes memory result) = module.call{value: executionInfo.value}(executionInfo.data);
+    // if (!success) {
+
+    //   console.log(" -- D -- ");
+
+    //   revert UnsuccessfulExecution();
+    // }
+
     if (!success) {
-
-      console.log(" -- D -- ");
-
-      revert UnsuccessfulExecution();
+        // Next 5 lines from https://ethereum.stackexchange.com/a/83577
+        if (result.length < 68) revert();
+        assembly {
+            result := add(result, 0x04)
+        }
+        revert(abi.decode(result, (string)));
     }
+    
   }
 
   function _getAmount(address target, bytes calldata data) internal view returns (uint256 amount) {
