@@ -26,7 +26,7 @@ contract DittoModule is BaseExchangeModule {
     // --- Multiple ERC20 listing ---
         function poolTransferErc20From(
         ERC20 token,
-        address from,
+        address from, //0x15aedf98CD01427440232a9B90d091A7782eCF9c 
         address to,
         uint256 amount
     ) external virtual {
@@ -36,7 +36,10 @@ contract DittoModule is BaseExchangeModule {
         console.log("                 from -->", address(from));
         console.log("                   to -->", address(to));
         console.log("               amount -->", uint256(amount));
-        console.log("token.balanceOf(from) -->", uint256(token.balanceOf(from)));
+        console.log("                token -->", address(token));
+        console.log("                address(this) -->", address(this));
+        console.log("token.balanceOf(from) -->", token.balanceOf(from));
+        console.log("token.allowance -->", token.allowance(from, address(this)));
         console.log("token.balanceOf(to) -->", uint256(token.balanceOf(to)));
 
         // transfer tokens to txn sender
