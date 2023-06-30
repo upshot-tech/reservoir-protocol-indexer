@@ -9,8 +9,12 @@ import {BaseExchangeModule} from "./BaseExchangeModule.sol";
 import {BaseModule} from "../BaseModule.sol";
 import {IDittoPool} from "../../../interfaces/IDitto.sol";
 
-contract DittoModule is BaseExchangeModule {
+//import {CREATE3} from "solmate/src/utils/CREATE3.sol";
+import { ERC20 } from "solmate/src/tokens/ERC20.sol";
+import { SafeTransferLib } from "solmate/src/utils/SafeTransferLib.sol";
 
+contract DittoModule is BaseExchangeModule {
+    using SafeTransferLib for ERC20;
   // --- Constructor ---
 
   constructor(address owner, address router) BaseModule(owner) BaseExchangeModule(router) {}
@@ -20,6 +24,24 @@ contract DittoModule is BaseExchangeModule {
     receive() external payable {}
 
     // --- Multiple ERC20 listing ---
+        function poolTransferErc20From(
+        ERC20 token,
+        address from,
+        address to,
+        uint256 amount
+    ) external virtual {
+
+      //;
+
+        console.log("                 from -->", address(from));
+        console.log("                   to -->", address(to));
+        console.log("               amount -->", uint256(amount));
+        console.log("token.balanceOf(from) -->", uint256(token.balanceOf(from)));
+        console.log("token.balanceOf(to) -->", uint256(token.balanceOf(to)));
+
+        // transfer tokens to txn sender
+        token.safeTransferFrom(from, to, amount);
+    }
 
     function buyWithERC20(
         IDittoPool[] calldata pairs,
@@ -35,12 +57,10 @@ contract DittoModule is BaseExchangeModule {
         chargeERC20Fees(fees, params.token, params.amount)
     {
 
-        console.log("pairs -->", address(pairs[0]));
-        console.log("nftIds -->", uint256(nftIds[0]));
-        console.log("params.token -->", address(params.token));
-        console.log("params.amount -->", uint256(params.amount));
-        console.log("params.refundTo -->", address(params.refundTo));
-        console.log("params.fillTo -->", address(params.fillTo));
+        // console.log("pairs -->", address(pairs[0]));
+        // console.log("nftIds -->", uint256(nftIds[0]));
+        // console.log("params.token -->", address(params.token));
+
 
         console.log("--- xxx --- ");
 
@@ -57,44 +77,23 @@ contract DittoModule is BaseExchangeModule {
                 /*uint256 protocolFee*/
             ) = pairs[i].getBuyNftQuote(1, "");
             
-            //tokenIds[0] = nftIds[i];
 
-            uint256[] memory nftIdList = new uint256[](1);
-            nftIdList[0] = 3;
-            
-            console.log("price >>> ", price);
-            console.log("price >>> ", price);
-            console.log("price >>> ", price);
-            console.log("price >>> ", price);
-            console.log("price >>> ", price);
-            
 
             // Approve the pair if needed
-            _approveERC20IfNeeded(params.token, address(pairs[i]), params.amount);
+            //_approveERC20IfNeeded(params.token, address(pairs[i]), params.amount);
 
             // Execute fill
             IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
-                nftIds: nftIdList, //tokenIds,
+                nftIds: nftIds,
                 maxExpectedTokenInput: price,
                 tokenSender: params.fillTo,
                 nftRecipient: params.fillTo,
                 swapData: ""
             }); 
 
-            //pairs[i].swapTokensForNfts(args);
+            pairs[i].swapTokensForNfts(args);
 
-            // make external call to this contract
-            bytes memory data = abi.encodeWithSelector(IDittoPool.swapTokensForNfts.selector, args);
-            (bool success, bytes memory result) = address(pairs[i]).call(data);
 
-            if (!success) {
-                // Next 5 lines from https://ethereum.stackexchange.com/a/83577
-                if (result.length < 68) revert();
-                assembly {
-                    result := add(result, 0x04)
-                }
-                revert(abi.decode(result, (string)));
-            }
 
             unchecked {
                 ++i;
