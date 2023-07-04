@@ -5,12 +5,7 @@ import { ethers } from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { expect } from "chai";
 
-//import { setupDittoListings } from "../helpers/ditto";
-import * as Sdk from "../../../../sdk/src";
-import abiErc20 from "../../../../sdk/src/ditto/abis/Erc20.json";
-import abiErc721 from "../../../../sdk/src/ditto/abis/Erc721.json";
-import abiDittoPool from "../../../../sdk/src/ditto/abis/Pool.json";
-import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/PoolFactory.json";
+import { setupDittoListings } from "../helpers/ditto";
 
 /**
  * run with the following command:
@@ -19,9 +14,7 @@ import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/PoolFactory.json
  */
 describe("DittoModule", () => {
 
-    let chainId: number;
     let tokenId: number;
-
     let poolAddress: string;
     let adminAddress: string;
     let initialTokenBalance: BigNumber;
@@ -40,42 +33,21 @@ describe("DittoModule", () => {
 
     
     beforeEach(async () => {
-        //await setupDittoListings(listings);
 
-        chainId = 5;
+        setupDittoListings().then((contracts) => {
+            nft = contracts.nft;
+            token = contracts.token;
+            dittoPool = contracts.dittoPool;
+            dittoPoolFactory = contracts.dittoPoolFactory;
+        });
 
         adminAddress = "0x0C19069F36594D93Adfa5794546A8D6A9C1b9e23"; //M1
         impersonatedSigner = await ethers.getImpersonatedSigner(adminAddress); 
+        poolAddress = dittoPool.address;
 
         [deployer, alice, bob] = await ethers.getSigners();
 
         initialTokenBalance = parseEther("1000");
-
-        poolAddress = Sdk.Ditto.Addresses.Pool[chainId];
-        
-        nft = new Contract(
-            Sdk.Ditto.Addresses.Test721[chainId],
-            abiErc721,
-            ethers.provider 
-        );
-
-        token = new Contract(
-            Sdk.Ditto.Addresses.Test20[chainId],
-            abiErc20,
-            ethers.provider 
-        );
-
-        dittoPool = new Contract(
-            Sdk.Ditto.Addresses.Pool[chainId],
-            abiDittoPool,
-            ethers.provider 
-        );
-
-        dittoPoolFactory = new Contract(
-            Sdk.Ditto.Addresses.PoolFactory[chainId],
-            abiDittoPoolFactory,
-            ethers.provider 
-        );
 
         router = await ethers.getContractFactory("ReservoirV6_0_1", deployer).then((factory) => 
             factory.deploy()
