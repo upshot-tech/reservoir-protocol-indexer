@@ -12,6 +12,11 @@ import abiErc721 from "../../../../sdk/src/ditto/abis/Erc721.json";
 import abiDittoPool from "../../../../sdk/src/ditto/abis/Pool.json";
 import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/PoolFactory.json";
 
+/**
+ * run with the following command:
+ * 
+ * ALCHEMY_KEY="" BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/listings.test.ts
+ */
 describe("DittoModule", () => {
 
     let chainId: number;

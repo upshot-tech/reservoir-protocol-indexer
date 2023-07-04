@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "hardhat/console.sol";
-
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
@@ -53,9 +51,6 @@ contract ReservoirV6_0_1 is ReentrancyGuard {
     ExecutionInfo[] calldata executionInfos
   ) external payable nonReentrant refundETH {
     uint256 length = executionInfos.length;
-
-    console.log("   length: %s", length);
-
     for (uint256 i = 0; i < length; ) {
       _executeInternal(executionInfos[i]);
 
@@ -106,37 +101,15 @@ contract ReservoirV6_0_1 is ReentrancyGuard {
   function _executeInternal(ExecutionInfo calldata executionInfo) internal {
     address module = executionInfo.module;
 
-    console.log("module: %s", module);
-
-    console.log(" -- A -- ");
-
     // Ensure the target is a contract
     if (!module.isContract()) {
-
-      console.log(" -- B -- ");
-
       revert UnsuccessfulExecution();
     }
 
-    console.log(" -- C -- ");
-
-    (bool success, bytes memory result) = module.call{value: executionInfo.value}(executionInfo.data);
-    // if (!success) {
-
-    //   console.log(" -- D -- ");
-
-    //   revert UnsuccessfulExecution();
-    // }
-
+    (bool success, ) = module.call{value: executionInfo.value}(executionInfo.data);
     if (!success) {
-        // Next 5 lines from https://ethereum.stackexchange.com/a/83577
-        if (result.length < 68) revert();
-        assembly {
-            result := add(result, 0x04)
-        }
-        revert(abi.decode(result, (string)));
+      revert UnsuccessfulExecution();
     }
-    
   }
 
   function _getAmount(address target, bytes calldata data) internal view returns (uint256 amount) {
