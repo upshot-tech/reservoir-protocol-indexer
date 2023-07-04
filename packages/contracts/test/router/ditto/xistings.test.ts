@@ -22,6 +22,8 @@ describe("DittoModule", () => {
     let initialTokenBalance: BigNumber;
     let impersonatedSigner: SignerWithAddress;
     let deployer: SignerWithAddress;
+    let alice: SignerWithAddress;
+    let bob: SignerWithAddress;
 
     let nft: Contract;
     let token: Contract;
@@ -40,7 +42,7 @@ describe("DittoModule", () => {
         adminAddress = "0x0C19069F36594D93Adfa5794546A8D6A9C1b9e23"; //M1
         impersonatedSigner = await ethers.getImpersonatedSigner(adminAddress); 
 
-        [deployer] = await ethers.getSigners();
+        [deployer, alice, bob] = await ethers.getSigners();
 
         initialTokenBalance = parseEther("1000");
 
@@ -81,10 +83,9 @@ describe("DittoModule", () => {
         const ownerAddress: string = await dittoPoolFactory.owner();
         const ownerSigner: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress);
         await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
-
     });
 
-    it("Accept listing", async () => {
+    it("Accept single listing", async () => {
 
         tokenId = 1;
 
@@ -96,9 +97,18 @@ describe("DittoModule", () => {
         await token.connect(impersonatedSigner).mint(adminAddress, initialTokenBalance);
         await token.balanceOf(adminAddress).then((balance01: BigNumber) => {
             expect(balance01).to.equal(balance00.add(initialTokenBalance));
-
         });
 
+        // let balance00: BigNumber = await token.balanceOf(alice.address);
+        // await token.connect(alice).mint(alice.address, initialTokenBalance);
+        // await token.balanceOf(alice.address).then((balance01: BigNumber) => {
+        //     expect(balance01).to.equal(balance00.add(initialTokenBalance));
+
+        // });
+        // let approve = await token.connect(alice).approve(dittoModule.address, initialTokenBalance);
+        // await approve.wait();
+
+        //const fillTo: string = alice.address;
         const fillTo: string = adminAddress;
         const refundTo: string = adminAddress;
         const revertIfIncomplete: boolean = false;
@@ -124,59 +134,27 @@ describe("DittoModule", () => {
         ];
 
 
-    const buyWithERC20 = [
-    [dittoPool.address], //IDittoPool[] calldata pairs, (pair)...
-    [tokenId], //uint256[] calldata nftIds,
-    eRC20ListingParams, //ERC20ListingParams calldata params,
-    [fee] //Fee[] calldata fees
-    ];
+        const buyWithERC20 = [
+            [dittoPool.address],
+            [tokenId],
+            eRC20ListingParams,
+            [fee]
+        ];
 
-    let data = dittoModule.interface.encodeFunctionData("buyWithERC20", buyWithERC20);
+        let data = dittoModule.interface.encodeFunctionData("buyWithERC20", buyWithERC20);
 
-    const executions = [
-    dittoModule.address, //module: 
-    data, //data: 
-    0 //parseEther("5") //value: 
-    ];
+        const executions = [
+            dittoModule.address,
+            data,
+            0
+        ];
 
+        await router.connect(impersonatedSigner).execute([executions]);
 
-    await token.connect(deployer).approve(dittoModule.address, initialTokenBalance);
-
-
-
-
-
-
-
-    
-
-    let xxx = await token.connect(impersonatedSigner).approve(dittoModule.address, initialTokenBalance);
-    await xxx.wait();
-
-    await token.connect(impersonatedSigner).allowance(impersonatedSigner.address, dittoModule.address).then((allowance: any) => {
-    console.log("             xxxallowance: ", allowance);
-    });
-
-
-
-    let xxxxxxx = await token.connect(impersonatedSigner).allowance(impersonatedSigner.address, "0x9c23eb4e6a9490af77a5cb1f3d2ba579ad17b1fc");
-
-    console.log("             xxxxxxx: ", xxxxxxx);
-
-    await router.connect(impersonatedSigner).execute([executions]);
-
-
-    await nft.ownerOf(tokenId).then((owner: any) => {
-    console.log("             owner: ", owner);
-    console.log("impersonatedSigner: ", impersonatedSigner.address);
-    console.log(" dittoPool.address: ", dittoPool.address);
-    console.log("  deployer.address: ", deployer.address);
-    });
-
+        await nft.ownerOf(tokenId).then((owner: any) => {
+            expect(owner).to.eq(fillTo);
+        });
 
     });
 
-
-
-
-    });
+});
