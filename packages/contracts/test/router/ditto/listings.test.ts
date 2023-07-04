@@ -1,241 +1,165 @@
-import { BigNumber } from "@ethersproject/bignumber";
 import { Contract } from "@ethersproject/contracts";
 import { parseEther } from "@ethersproject/units";
-import * as Sdk from "@reservoir0x/sdk/src";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { expect } from "chai";
 import { ethers } from "hardhat";
+import { BigNumber } from "@ethersproject/bignumber";
+import { expect } from "chai";
 
-import { ExecutionInfo } from "../helpers/router";
+//import { setupDittoListings } from "../helpers/ditto";
+import * as Sdk from "../../../../sdk/src";
+import abiErc20 from "../../../../sdk/src/ditto/abis/Erc20.json";
+import abiErc721 from "../../../../sdk/src/ditto/abis/Erc721.json";
+import abiDittoPool from "../../../../sdk/src/ditto/abis/Pool.json";
+import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/PoolFactory.json";
 
-import { DittoListing, setupDittoListings } from "../helpers/ditto";
+/**
+ * run with the following command:
+ * 
+ * ALCHEMY_KEY="" BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/listings.test.ts
+ */
+describe("DittoModule", () => {
 
-import {
-  bn,
-  getRandomBoolean,
-  getRandomFloat,
-  getRandomInteger,
-  reset,
-  setupNFTs,
-  setupTokens,
-} from "../../utils";
+    let chainId: number;
+    let tokenId: number;
 
-describe("[ReservoirV6_0_1] Ditto listings", () => {
-  const chainId = 5; //TODO: replace with getChainId() once deployed to mainnet
+    let poolAddress: string;
+    let adminAddress: string;
+    let initialTokenBalance: BigNumber;
+    let impersonatedSigner: SignerWithAddress;
+    let deployer: SignerWithAddress;
+    let alice: SignerWithAddress;
+    let bob: SignerWithAddress;
 
-  let deployer: SignerWithAddress;
-  let alice: SignerWithAddress;
-  let bob: SignerWithAddress;
-  let carol: SignerWithAddress;
-  let david: SignerWithAddress;
-  let emilio: SignerWithAddress;
+    let nft: Contract;
+    let token: Contract;
+    let dittoPool: Contract;
+    let dittoPoolFactory: Contract;
+  
+    let router: Contract;
+    let dittoModule: Contract;
 
-  let erc20: Contract;
-  let erc721: Contract;
-  let router: Contract;
-  let dittoModule: Contract;
+    
+    beforeEach(async () => {
+        //await setupDittoListings(listings);
 
-  beforeEach(async () => {
-    [deployer, alice, bob, carol, david, emilio] = await ethers.getSigners();
+        chainId = 5;
 
-    ({ erc20 } = await setupTokens(deployer));
-    ({ erc721 } = await setupNFTs(deployer));
+        adminAddress = "0x0C19069F36594D93Adfa5794546A8D6A9C1b9e23"; //M1
+        impersonatedSigner = await ethers.getImpersonatedSigner(adminAddress); 
 
-    router = await ethers
-      .getContractFactory("ReservoirV6_0_1", deployer)
-      .then((factory) => factory.deploy());
-    dittoModule = await ethers
-      .getContractFactory("DittoModule", deployer)
-      .then((factory) =>
-        factory.deploy(deployer.address, router.address)
-      );
-  });
+        [deployer, alice, bob] = await ethers.getSigners();
 
-    const getBalances = async (token: string) => {
-        const contract = new Sdk.Common.Helpers.Erc20(ethers.provider, token);
-        return {
-            alice: await contract.getBalance(alice.address),
-            bob: await contract.getBalance(bob.address),
-            carol: await contract.getBalance(carol.address),
-            david: await contract.getBalance(david.address),
-            emilio: await contract.getBalance(emilio.address),
-            router: await contract.getBalance(router.address),
-            dittoModule: await contract.getBalance(dittoModule.address),
-        };
-    };
+        initialTokenBalance = parseEther("1000");
 
-  afterEach(reset);
+        poolAddress = Sdk.Ditto.Addresses.Pool[chainId];
+        
+        nft = new Contract(
+            Sdk.Ditto.Addresses.Test721[chainId],
+            abiErc721,
+            ethers.provider 
+        );
 
-  const testAcceptListings = async (
-    // Whether to include fees on top
-    chargeFees: boolean,
-    // Whether to revert or not in case of any failures
-    revertIfIncomplete: boolean,
-    // Whether to cancel some orders in order to trigger partial filling
-    partial: boolean,
-    // Number of listings to fill
-    listingsCount: number
-  ) => {
-    // Setup
+        token = new Contract(
+            Sdk.Ditto.Addresses.Test20[chainId],
+            abiErc20,
+            ethers.provider 
+        );
 
-    // Makers: Alice and Bob
-    // Taker: Carol
-    // Fee recipient: Emilio
+        dittoPool = new Contract(
+            Sdk.Ditto.Addresses.Pool[chainId],
+            abiDittoPool,
+            ethers.provider 
+        );
 
-    const listings: DittoListing[] = [];
-    const feesOnTop: BigNumber[] = [];
-    for (let i = 0; i < listingsCount; i++) {
-      listings.push({
-        seller: getRandomBoolean() ? alice : bob,
-        nft: {
-          contract: erc721,
-          id: getRandomInteger(1, 10000),
-        },
-        price: parseEther(getRandomFloat(0.0001, 2).toFixed(6)),
-        isCancelled: partial && getRandomBoolean(),
-      });
+        dittoPoolFactory = new Contract(
+            Sdk.Ditto.Addresses.PoolFactory[chainId],
+            abiDittoPoolFactory,
+            ethers.provider 
+        );
 
-      if (chargeFees) {
-        feesOnTop.push(parseEther(getRandomFloat(0.0001, 0.1).toFixed(6)));
-      }
-    }
-    await setupDittoListings(listings);
+        router = await ethers.getContractFactory("ReservoirV6_0_1", deployer).then((factory) => 
+            factory.deploy()
+        );
 
-    // Prepare executions
+        dittoModule = await ethers.getContractFactory("DittoModule", deployer).then((factory) =>
+            factory.deploy(deployer.address, router.address)
+        );
 
-    const totalPrice = bn(
-      listings
-        .map(({ price }) =>
-          // The protocol fee should be paid on top of the price
-          bn(price).add(bn(price).mul(50).div(10000))
-        )
-        .reduce((a, b) => bn(a).add(b), bn(0))
-    );
-    const executions: ExecutionInfo[] = [
-      // 1. Fill listings
-      {
-        module: dittoModule.address,
-        data: dittoModule.interface.encodeFunctionData("buyWithERC20", [
-          listings.map((listing) => listing.order!.params.pair),
-          listings.map((listing) => listing.nft.id),
-          Math.floor(Date.now() / 1000),
-          {
-            fillTo: carol.address,
-            refundTo: carol.address,
-            revertIfIncomplete,
-            amount: totalPrice,
-          },
-          [
-            ...feesOnTop.map((amount) => ({
-              recipient: emilio.address,
-              amount,
-            })),
-          ],
-        ]),
-        value: totalPrice.add(
-          // Anything on top should be refunded
-          feesOnTop.reduce((a, b) => bn(a).add(b), bn(0)).add(parseEther("0.1"))
-        ),
-      },
-    ];
-
-    // Checks
-
-    // If the `revertIfIncomplete` option is enabled and we have any
-    // orders that are not fillable, the whole transaction should be
-    // reverted
-    if (partial && revertIfIncomplete && listings.some(({ isCancelled }) => isCancelled)) {
-      await expect(
-        router.connect(carol).execute(executions, {
-          value: executions.map(({ value }) => value).reduce((a, b) => bn(a).add(b), bn(0)),
-        })
-      ).to.be.revertedWith("reverted with custom error 'UnsuccessfulExecution()'");
-
-      return;
-    }
-
-    // Fetch pre-state
-
-    const ethBalancesBefore = await getBalances(erc20.address);
-
-    // Execute
-
-    await router.connect(carol).execute(executions, {
-      value: executions.map(({ value }) => value).reduce((a, b) => bn(a).add(b), bn(0)),
+        const ownerAddress: string = await dittoPoolFactory.owner();
+        const ownerSigner: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress);
+        await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
     });
 
-    // Fetch post-state
+    it("Accept single listing", async () => {
 
-    const ethBalancesAfter = await getBalances(erc20.address);
+        tokenId = 1;
 
-    // Checks
+        await nft.ownerOf(tokenId).then((owner: any) => {
+            expect(owner).to.eq(poolAddress);
+        });
 
-    // Alice got the payment
-    expect(ethBalancesAfter.alice.sub(ethBalancesBefore.alice)).to.eq(
-      listings
-        .filter(({ seller, isCancelled }) => !isCancelled && seller.address === alice.address)
-        .map(({ price }) => price)
-        .reduce((a, b) => bn(a).add(b), bn(0))
-    );
-    // Bob got the payment
-    expect(ethBalancesAfter.bob.sub(ethBalancesBefore.bob)).to.eq(
-      listings
-        .filter(({ seller, isCancelled }) => !isCancelled && seller.address === bob.address)
-        .map(({ price }) => price)
-        .reduce((a, b) => bn(a).add(b), bn(0))
-    );
+        let balance00: BigNumber = await token.balanceOf(adminAddress);
+        await token.connect(impersonatedSigner).mint(adminAddress, initialTokenBalance);
+        await token.balanceOf(adminAddress).then((balance01: BigNumber) => {
+            expect(balance01).to.equal(balance00.add(initialTokenBalance));
+        });
 
-    // Emilio got the fee payments
-    if (chargeFees) {
-      // Fees are charged per execution, and since we have a single execution
-      // here, we will have a single fee payment at the end adjusted over the
-      // amount that was actually paid (eg. prices of filled orders)
-      const actualPaid = listings
-        .filter(({ isCancelled }) => !isCancelled)
-        .map(({ price }) => bn(price).add(bn(price).mul(50).div(10000)))
-        .reduce((a, b) => bn(a).add(b), bn(0));
-      expect(ethBalancesAfter.emilio.sub(ethBalancesBefore.emilio)).to.eq(
-        listings
-          .map((_, i) => feesOnTop[i].mul(actualPaid).div(totalPrice))
-          .reduce((a, b) => bn(a).add(b), bn(0))
-      );
-    }
+        // let balance00: BigNumber = await token.balanceOf(alice.address);
+        // await token.connect(alice).mint(alice.address, initialTokenBalance);
+        // await token.balanceOf(alice.address).then((balance01: BigNumber) => {
+        //     expect(balance01).to.equal(balance00.add(initialTokenBalance));
 
-    // Carol got the NFTs from all filled orders
-    for (let i = 0; i < listings.length; i++) {
-      const nft = listings[i].nft;
-      if (!listings[i].isCancelled) {
-        expect(await nft.contract.ownerOf(nft.id)).to.eq(carol.address);
-      } else {
-        expect(await nft.contract.ownerOf(nft.id)).to.eq(listings[i].seller.address);
-      }
-    }
+        // });
+        // let approve = await token.connect(alice).approve(dittoModule.address, initialTokenBalance);
+        // await approve.wait();
 
-    // Router is stateless
-    expect(ethBalancesAfter.router).to.eq(0);
-    expect(ethBalancesAfter.dittoModule).to.eq(0);
-  };
+        //const fillTo: string = alice.address;
+        const fillTo: string = adminAddress;
+        const refundTo: string = adminAddress;
+        const revertIfIncomplete: boolean = false;
+        // The ERC20 payment token for the listings
+        const tokenAddress: string = token.address;
+        // The total amount of `token` to be provided when filling
+        const amountPayment: BigNumber = parseEther("2");
 
-  for (const multiple of [false, true]) {
-    for (const partial of [false, true]) {
-      for (const chargeFees of [false, true]) {
-        for (const revertIfIncomplete of [false, true]) {
-          it(
-            "[eth]" + //TODO: 'eth' is definetly incorrect...
-              `${multiple ? "[multiple-orders]" : "[single-order]"}` +
-              `${partial ? "[partial]" : "[full]"}` +
-              `${chargeFees ? "[fees]" : "[no-fees]"}` +
-              `${revertIfIncomplete ? "[reverts]" : "[skip-reverts]"}`,
-            async () =>
-              testAcceptListings(
-                chargeFees,
-                revertIfIncomplete,
-                partial,
-                multiple ? getRandomInteger(2, 6) : 1
-              )
-          );
-        }
-      }
-    }
-  }
+        const eRC20ListingParams = [
+            fillTo,
+            refundTo,
+            revertIfIncomplete,
+            tokenAddress,
+            amountPayment
+        ];
+
+        const recipient: string = dittoPool.address;
+        const amountFee: BigNumber = parseEther("0");
+
+        const fee = [
+            recipient,
+            amountFee
+        ];
+
+
+        const buyWithERC20 = [
+            [dittoPool.address],
+            [tokenId],
+            eRC20ListingParams,
+            [fee]
+        ];
+
+        let data = dittoModule.interface.encodeFunctionData("buyWithERC20", buyWithERC20);
+
+        const executions = [
+            dittoModule.address,
+            data,
+            0
+        ];
+
+        await router.connect(impersonatedSigner).execute([executions]);
+
+        await nft.ownerOf(tokenId).then((owner: any) => {
+            expect(owner).to.eq(fillTo);
+        });
+
+    });
+
 });
