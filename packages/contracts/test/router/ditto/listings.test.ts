@@ -62,7 +62,69 @@ describe("DittoModule", () => {
         await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
     });
 
-    it("Accept single listing", async () => {
+    // it("Accept single listing", async () => {
+
+    //     tokenId = 1;
+
+    //     await nft.ownerOf(tokenId).then((owner: any) => {
+    //         expect(owner).to.eq(poolAddress);
+    //     });
+
+    //     await token.connect(impersonatedSigner).mint(adminAddress, initialTokenBalance);
+    //     await token.balanceOf(adminAddress).then((balance: BigNumber) => {
+    //         expect(balance).to.equal(initialTokenBalance);
+
+    //     });
+    //     // NOTE: if fees for this pool were set to higher than zero we'd have to approve the pool too
+    //     let approve = await token.connect(impersonatedSigner).approve(dittoModule.address, initialTokenBalance);
+    //     await approve.wait();
+
+    //     const fillTo: string = adminAddress;
+    //     const refundTo: string = adminAddress;
+    //     const revertIfIncomplete: boolean = false;
+    //     const tokenAddress: string = token.address;
+    //     const amountPayment: BigNumber = parseEther("2");
+
+    //     const eRC20ListingParams = [
+    //         fillTo,
+    //         refundTo,
+    //         revertIfIncomplete,
+    //         tokenAddress,
+    //         amountPayment
+    //     ];
+
+    //     const recipient: string = dittoPool.address;
+    //     const amountFee: BigNumber = parseEther("0");
+
+    //     const fee = [
+    //         recipient,
+    //         amountFee
+    //     ];
+
+    //     const buyWithERC20 = [
+    //         [dittoPool.address],
+    //         [tokenId],
+    //         eRC20ListingParams,
+    //         [fee]
+    //     ];
+
+    //     let data = dittoModule.interface.encodeFunctionData("buyWithERC20", buyWithERC20);
+
+    //     const executions = [
+    //         dittoModule.address,
+    //         data,
+    //         0
+    //     ];
+
+    //     await router.execute([executions]);
+
+    //     await nft.ownerOf(tokenId).then((owner: any) => {
+    //         expect(owner).to.eq(fillTo);
+    //     });
+
+    // });
+
+    it("Accept multiple listings", async () => {
 
         tokenId = 1;
 
