@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import { console } from "hardhat/console.sol";
+
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {BaseExchangeModule} from "./BaseExchangeModule.sol";
 import {BaseModule} from "../BaseModule.sol";
@@ -41,30 +43,22 @@ contract DittoModule is BaseExchangeModule {
     {
       uint256 pairsLength = pairs.length;
       for (uint256 i; i < pairsLength; ) {
-      // Fetch the current price
-      (
-        , // uint8 error
-        , // uint256 newSpotPrice 
-        , // uint256 newDelta
-        uint256 inputAmount, 
-        // uint256 protocolFee
-      ) = pairs[i].getBuyNftQuote(1, "");
 
-      // Execute fill
-      IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
-        nftIds: nftIds,
-        maxExpectedTokenInput: inputAmount,
-        tokenSender: params.fillTo,
-        nftRecipient: params.fillTo,
-        swapData: ""
-      }); 
+        // Execute fill
+        IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
+          nftIds: nftIds,
+          maxExpectedTokenInput: params.amount,
+          tokenSender: params.fillTo,
+          nftRecipient: params.fillTo,
+          swapData: ""
+        }); 
 
-      pairs[i].swapTokensForNfts(args);
+        pairs[i].swapTokensForNfts(args);
 
-      unchecked {
-        ++i;
+        unchecked {
+          ++i;
+        }
       }
     }
-  }
 
 }
