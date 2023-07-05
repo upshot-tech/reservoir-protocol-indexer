@@ -126,9 +126,12 @@ describe("DittoModule", () => {
 
     it("Accept multiple listings", async () => {
 
-        tokenId = 1;
-
-        await nft.ownerOf(tokenId).then((owner: any) => {
+        const tokenId00 = 1;
+        await nft.ownerOf(tokenId00).then((owner: any) => {
+            expect(owner).to.eq(poolAddress);
+        });
+        const tokenId01 = 2;
+        await nft.ownerOf(tokenId01).then((owner: any) => {
             expect(owner).to.eq(poolAddress);
         });
 
@@ -137,7 +140,17 @@ describe("DittoModule", () => {
             expect(balance).to.equal(initialTokenBalance);
 
         });
-        // NOTE: if fees for this pool were set to higher than zero we'd have to approve the pool too
+        // NOTE: test with fees...
+        const ownerAddress00: string = await dittoPoolFactory.owner();
+        const ownerSigner00: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress00);
+        let txn00 = await dittoPoolFactory.connect(ownerSigner00).setProtocolFee(parseEther("0.1"));
+        await txn00.wait();
+
+        // const ownerAddress01: string = await dittoPool.owner();
+        // const ownerSigner01: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress01);
+        // let txn01 = await dittoPool.connect(ownerSigner01).changeAdminFee(parseEther("0.1"));
+        // await txn01.wait();
+        
         let approve = await token.connect(impersonatedSigner).approve(dittoModule.address, initialTokenBalance);
         await approve.wait();
 
@@ -165,7 +178,7 @@ describe("DittoModule", () => {
 
         const buyWithERC20 = [
             [dittoPool.address],
-            [tokenId],
+            [tokenId00],
             eRC20ListingParams,
             [fee]
         ];
@@ -180,7 +193,7 @@ describe("DittoModule", () => {
 
         await router.execute([executions]);
 
-        await nft.ownerOf(tokenId).then((owner: any) => {
+        await nft.ownerOf(tokenId00).then((owner: any) => {
             expect(owner).to.eq(fillTo);
         });
 
