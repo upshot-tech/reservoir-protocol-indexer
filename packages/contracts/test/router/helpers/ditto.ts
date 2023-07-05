@@ -1,6 +1,4 @@
 import { Contract } from "@ethersproject/contracts";
-import { BigNumber } from "@ethersproject/bignumber";
-import { parseEther } from "@ethersproject/units";
 
 import { ethers } from "hardhat";
 
@@ -9,11 +7,11 @@ import abiErc20 from "../../../../sdk/src/ditto/abis/Erc20.json";
 import abiErc721 from "../../../../sdk/src/ditto/abis/Erc721.json";
 import abiDittoPool from "../../../../sdk/src/ditto/abis/Pool.json";
 import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/PoolFactory.json";
-
+import { getChainId } from "../../utils";
 
 export const setupDittoListings = async () => {
 
-    const chainId = 5;  
+    const chainId = getChainId();  
     
     const nft: Contract = new Contract(
         Sdk.Ditto.Addresses.Test721[chainId],

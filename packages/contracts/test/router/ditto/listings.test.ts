@@ -10,7 +10,7 @@ import { setupDittoListings } from "../helpers/ditto";
 /**
  * run with the following command:
  * 
- * ALCHEMY_KEY="" BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/listings.test.ts
+ * BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/listings.test.ts
  */
 describe("DittoModule", () => {
 
@@ -41,7 +41,7 @@ describe("DittoModule", () => {
             dittoPoolFactory = contracts.dittoPoolFactory;
         });
 
-        adminAddress = "0x0C19069F36594D93Adfa5794546A8D6A9C1b9e23"; //M1
+        adminAddress = "0x00000000000000000000000000000000DeaDBeef";
         impersonatedSigner = await ethers.getImpersonatedSigner(adminAddress); 
         poolAddress = dittoPool.address;
 
@@ -70,22 +70,15 @@ describe("DittoModule", () => {
             expect(owner).to.eq(poolAddress);
         });
 
-        let balance00: BigNumber = await token.balanceOf(adminAddress);
         await token.connect(impersonatedSigner).mint(adminAddress, initialTokenBalance);
-        await token.balanceOf(adminAddress).then((balance01: BigNumber) => {
-            expect(balance01).to.equal(balance00.add(initialTokenBalance));
+        await token.balanceOf(adminAddress).then((balance: BigNumber) => {
+            expect(balance).to.equal(initialTokenBalance);
+
         });
+        // NOTE: if fees for this pool were set to higher than zero we'd have to approve the pool too
+        let approve = await token.connect(impersonatedSigner).approve(dittoModule.address, initialTokenBalance);
+        await approve.wait();
 
-        // let balance00: BigNumber = await token.balanceOf(alice.address);
-        // await token.connect(alice).mint(alice.address, initialTokenBalance);
-        // await token.balanceOf(alice.address).then((balance01: BigNumber) => {
-        //     expect(balance01).to.equal(balance00.add(initialTokenBalance));
-
-        // });
-        // let approve = await token.connect(alice).approve(dittoModule.address, initialTokenBalance);
-        // await approve.wait();
-
-        //const fillTo: string = alice.address;
         const fillTo: string = adminAddress;
         const refundTo: string = adminAddress;
         const revertIfIncomplete: boolean = false;
@@ -126,7 +119,7 @@ describe("DittoModule", () => {
             0
         ];
 
-        await router.connect(impersonatedSigner).execute([executions]);
+        await router.execute([executions]);
 
         await nft.ownerOf(tokenId).then((owner: any) => {
             expect(owner).to.eq(fillTo);

@@ -17,7 +17,7 @@ export const Test721: ChainIdToAddress = {
 
 export const Test20: ChainIdToAddress = {
   [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
-  [Network.EthereumGoerli]: "0x4B3B968a56e0354694cc212D8EbB2c3e8944C15B",
+  [Network.EthereumGoerli]: "0x3e614639A6F5eA8B3698024031a9CAf211aC45EF",
 };
 
 
