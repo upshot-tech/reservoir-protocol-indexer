@@ -94,6 +94,11 @@ export const trigger = {
         Sdk.SeaportBase.Addresses.ConduitController[chainId],
         Sdk.RouterV6.Addresses.Router[chainId],
       ]),
+    PermitProxy: async (chainId: number) =>
+      dv("PermitProxy", "v1", [
+        Sdk.RouterV6.Addresses.Router[chainId],
+        Sdk.Common.Addresses.GelatoRelay1BalanceERC2771[chainId],
+      ]),
     SeaportConduit: async (chainId: number) => {
       const contractName = "SeaportConduit";
       const version = "v1";
@@ -123,9 +128,16 @@ export const trigger = {
         if (!result.exists) {
           await conduitController.createConduit(conduitKey, DEPLOYER);
           await new Promise((resolve) => setTimeout(resolve, 30000));
+          // Grant ApprovalProxy
           await conduitController.updateChannel(
             result.conduit,
             Sdk.RouterV6.Addresses.ApprovalProxy[chainId],
+            true
+          );
+          // Grant Seaport
+          await conduitController.updateChannel(
+            result.conduit,
+            Sdk.SeaportV15.Addresses.Exchange[chainId],
             true
           );
         }
@@ -254,10 +266,24 @@ export const trigger = {
         Sdk.RouterV6.Addresses.Router[chainId],
         Sdk.CollectionXyz.Addresses.CollectionRouter[chainId],
       ]),
+    CryptoPunksModule: async (chainId: number) =>
+      dv("CryptoPunksModule", "v1", [
+        DEPLOYER,
+        Sdk.RouterV6.Addresses.Router[chainId],
+        Sdk.CryptoPunks.Addresses.Exchange[chainId],
+      ]),
+    PaymentProcessorModule: async (chainId: number) =>
+      dv("PaymentProcessorModule", "v1", [
+        DEPLOYER,
+        Sdk.RouterV6.Addresses.Router[chainId],
+        Sdk.PaymentProcessor.Addresses.Exchange[chainId],
+      ]),
   },
   // Utilities
   Utilities: {
     LiteRoyaltyEngine: async () => dv("LiteRoyaltyEngine", "v1", []),
+    BlurTransferHelper: async (chainId: number) =>
+      chainId === 1 ? dv("BlurTransferHelper", "v1", []) : undefined,
   },
   // Test NFTs
   TestNFTs: {

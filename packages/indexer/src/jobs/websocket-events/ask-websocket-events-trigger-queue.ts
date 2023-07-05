@@ -32,14 +32,14 @@ export const queue = new Queue(QUEUE_NAME, {
 new QueueScheduler(QUEUE_NAME, { connection: redis.duplicate() });
 
 // BACKGROUND WORKER ONLY
-if (config.doBackgroundWork && config.doWebsocketServerWork && config.kafkaBrokers.length > 0) {
+if (config.doBackgroundWork && config.doWebsocketServerWork) {
   const worker = new Worker(
     QUEUE_NAME,
     async (job: Job) => {
       const { data } = job.data as EventInfo;
 
       try {
-        const criteriaBuildQuery = Orders.buildCriteriaQuery("orders", "token_set_id", false);
+        const criteriaBuildQuery = Orders.buildCriteriaQuery("orders", "token_set_id", true);
 
         const rawResult = await idb.oneOrNone(
           `
