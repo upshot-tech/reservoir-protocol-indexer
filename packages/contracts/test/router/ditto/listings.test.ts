@@ -82,9 +82,7 @@ describe("DittoModule", () => {
         const fillTo: string = adminAddress;
         const refundTo: string = adminAddress;
         const revertIfIncomplete: boolean = false;
-        // The ERC20 payment token for the listings
         const tokenAddress: string = token.address;
-        // The total amount of `token` to be provided when filling
         const amountPayment: BigNumber = parseEther("2");
 
         const eRC20ListingParams = [
@@ -102,7 +100,6 @@ describe("DittoModule", () => {
             recipient,
             amountFee
         ];
-
 
         const buyWithERC20 = [
             [dittoPool.address],
