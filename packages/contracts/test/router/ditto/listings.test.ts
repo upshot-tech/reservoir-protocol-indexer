@@ -106,7 +106,6 @@ describe("DittoModule", () => {
             amountFee
         ];
 
-        //DittoOrderParams[] calldata orderParams,
         const orderParams = [
             [tokenId00, tokenId01],
             '0x'
