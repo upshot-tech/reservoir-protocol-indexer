@@ -75,7 +75,6 @@ describe("DittoModule", () => {
         await token.connect(impersonatedSigner).mint(adminAddress, initialTokenBalance);
         await token.balanceOf(adminAddress).then((balance: BigNumber) => {
             expect(balance).to.equal(initialTokenBalance);
-
         });
         let approve = await token.connect(impersonatedSigner).approve(dittoModule.address, initialTokenBalance);
         await approve.wait();
