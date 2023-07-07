@@ -110,7 +110,8 @@ describe("DittoModule", () => {
             [dittoPool.address],
             [tokenId00, tokenId01],
             eRC20ListingParams,
-            [fee]
+            [fee],
+            ['0x']
         ];
 
         let data = dittoModule.interface.encodeFunctionData("buyWithERC20", buyWithERC20);

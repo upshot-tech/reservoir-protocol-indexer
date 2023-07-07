@@ -33,7 +33,8 @@ contract DittoModule is BaseExchangeModule {
       IDittoPool[] calldata pairs,
       uint256[] calldata nftIds,
       ERC20ListingParams calldata params,
-      Fee[] calldata fees
+      Fee[] calldata fees,
+      bytes[] calldata swapData
     )
     external
     payable
@@ -50,7 +51,7 @@ contract DittoModule is BaseExchangeModule {
           maxExpectedTokenInput: params.amount,
           tokenSender: params.fillTo,
           nftRecipient: params.fillTo,
-          swapData: ""
+          swapData: swapData[i]
         }); 
 
         pairs[i].swapTokensForNfts(args);
