@@ -11,6 +11,11 @@ import {IDittoPool} from "../../../interfaces/IDittoPool.sol";
 import { ERC20 } from "solmate/src/tokens/ERC20.sol";
 import { SafeTransferLib } from "solmate/src/utils/SafeTransferLib.sol";
 
+struct DittoOrderParams {
+  uint256[] nftIds;
+  bytes swapData;
+}
+
 contract DittoModule is BaseExchangeModule {
     using SafeTransferLib for ERC20;
   
@@ -31,10 +36,9 @@ contract DittoModule is BaseExchangeModule {
 
     function buyWithERC20(
       IDittoPool[] calldata pairs,
-      uint256[] calldata nftIds,
+      DittoOrderParams[] calldata orderParams,
       ERC20ListingParams calldata params,
-      Fee[] calldata fees,
-      bytes[] calldata swapData
+      Fee[] calldata fees
     )
     external
     payable
@@ -47,11 +51,11 @@ contract DittoModule is BaseExchangeModule {
 
         // Execute fill
         IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
-          nftIds: nftIds,
+          nftIds: orderParams[i].nftIds,
           maxExpectedTokenInput: params.amount,
           tokenSender: params.fillTo,
           nftRecipient: params.fillTo,
-          swapData: swapData[i]
+          swapData: orderParams[i].swapData
         }); 
 
         pairs[i].swapTokensForNfts(args);
