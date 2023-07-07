@@ -6,7 +6,7 @@ import { console } from "hardhat/console.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {BaseExchangeModule} from "./BaseExchangeModule.sol";
 import {BaseModule} from "../BaseModule.sol";
-import {IDittoPool} from "../../../interfaces/IDitto.sol";
+import {IDittoPool} from "../../../interfaces/IDittoPool.sol";
 
 import { ERC20 } from "solmate/src/tokens/ERC20.sol";
 import { SafeTransferLib } from "solmate/src/utils/SafeTransferLib.sol";

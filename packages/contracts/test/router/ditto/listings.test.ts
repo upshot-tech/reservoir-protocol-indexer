@@ -83,7 +83,6 @@ describe("DittoModule", () => {
         // Fetch the current price
         let result = await dittoPool.getBuyNftQuote(2, '0x');
         let inputValue = result[3];
-        console.log("result: ", inputValue);
 
         const fillTo: string = adminAddress;
         const refundTo: string = adminAddress;
