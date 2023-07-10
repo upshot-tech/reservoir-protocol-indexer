@@ -17,6 +17,8 @@ ALTER TABLE "dittoswap_pools"
   ADD CONSTRAINT "dittoswap_pools_pk"
   PRIMARY KEY ("address");
 
+ALTER TYPE "order_kind_t" ADD VALUE 'dittoswap';
+
 -- Down Migration
 
 DROP TABLE "dittoswap_pools";
