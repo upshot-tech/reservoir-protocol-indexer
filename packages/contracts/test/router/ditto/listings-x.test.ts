@@ -60,6 +60,7 @@ describe("DittoModule", () => {
 
         let messageHash = ethers.utils.solidityKeccak256(
             [
+                'uint256',
                 'bytes',
                 'uint256',
                 'address',
@@ -70,6 +71,7 @@ describe("DittoModule", () => {
                 'uint256'
             ],
             [
+                5, //block.chainId
                 "0x00",
                 1,
                 "0x3BcEcaE1a61f53Ead737fBd801C9D9873917e5C6",
@@ -79,10 +81,14 @@ describe("DittoModule", () => {
                 4,
                 parseEther("1.1")
             ]);
-        console.log("messageHash: ", messageHash);     
+             
 
-        //let signature = await deployer.signMessage(ethers.utils.arrayify(messageHash));
-        let signature = await deployer.signMessage(messageHash);
+        let signature00 = await deployer.signMessage(ethers.utils.arrayify(messageHash));
+        console.log("signature00: ", signature00);
+        let signature01 = await deployer.signMessage(messageHash);
+        console.log("signature01: ", signature01);
+        console.log("messageHash: ", ethers.utils.arrayify(messageHash));
+        console.log("messageHash: ", messageHash);
 
         const priceData = {
             signature: "0x00",
@@ -94,9 +100,9 @@ describe("DittoModule", () => {
             nftId: 4,
             price: parseEther("1.1") 
         }
-        priceData.signature = signature;
+        priceData.signature = signature00;
 
-        console.log("signature: ", signature);
+        
 
         await upshotOracle.connect(deployer).decodeTokenPrices(
             [priceData]
