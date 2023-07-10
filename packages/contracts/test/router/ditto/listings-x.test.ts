@@ -71,9 +71,9 @@ describe("DittoModule", () => {
             ],
             [
                 "0x00",
-                0,
+                1,
                 "0x3BcEcaE1a61f53Ead737fBd801C9D9873917e5C6",
-                1689009867,
+                0,
                 "0x607702b48528C2883ADF0A24b8A5e1b5988082d6",
                 "79228162514264337593543950335",
                 4,
@@ -81,13 +81,14 @@ describe("DittoModule", () => {
             ]);
         console.log("messageHash: ", messageHash);     
 
-        let signature = await deployer.signMessage(ethers.utils.arrayify(messageHash));
+        //let signature = await deployer.signMessage(ethers.utils.arrayify(messageHash));
+        let signature = await deployer.signMessage(messageHash);
 
         const priceData = {
-            signature: "0x",
-            nonce: 0,
+            signature: "0x00",
+            nonce: 1,
             nft: "0x3BcEcaE1a61f53Ead737fBd801C9D9873917e5C6",
-            timestamp: 1689009867,
+            timestamp: 0,
             token: "0x607702b48528C2883ADF0A24b8A5e1b5988082d6",
             expiration: "79228162514264337593543950335",
             nftId: 4,
