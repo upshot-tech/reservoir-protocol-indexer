@@ -24,6 +24,8 @@ contract ReservoirV6_0_1 is ReentrancyGuard {
   // --- Errors ---
 
   error UnsuccessfulExecution();
+  error UnsuccessfulExecution00();
+  error UnsuccessfulExecution01();
   error UnsuccessfulPayment();
 
   // --- Modifiers ---
@@ -103,13 +105,26 @@ contract ReservoirV6_0_1 is ReentrancyGuard {
 
     // Ensure the target is a contract
     if (!module.isContract()) {
-      revert UnsuccessfulExecution();
+      revert UnsuccessfulExecution00();
     }
 
-    (bool success, ) = module.call{value: executionInfo.value}(executionInfo.data);
-    if (!success) {
-      revert UnsuccessfulExecution();
-    }
+    // (bool success, ) = module.call{value: executionInfo.value}(executionInfo.data);
+    // if (!success) {
+    //   revert UnsuccessfulExecution01();
+    // }
+
+      (bool success, bytes memory result) = module.call{value: executionInfo.value}(executionInfo.data);
+
+            if (!success) {
+                // Next 5 lines from https://ethereum.stackexchange.com/a/83577
+                if (result.length < 68) revert();
+                assembly {
+                    result := add(result, 0x04)
+                }
+                revert(abi.decode(result, (string)));
+            }
+
+
   }
 
   function _getAmount(address target, bytes calldata data) internal view returns (uint256 amount) {

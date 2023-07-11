@@ -213,15 +213,12 @@ describe("DittoModule", () => {
             ['tuple(bytes signature,uint256 nonce,address nft,uint96 timestamp,address token,uint96 expiration,uint256 nftId,uint256 price)[]'],
             [[priceData]]
           );
-
-        console.log("swapData: ", swapData)
-
   
         const fillTo: string = alice.address;
         const refundTo: string = alice.address;
         const revertIfIncomplete: boolean = false;
         const tokenAddress00: string = token.address;
-        const amountPayment: BigNumber = parseEther("1.2");
+        const amountPayment: any = price;
 
         const eRC20ListingParams = [
             fillTo,
