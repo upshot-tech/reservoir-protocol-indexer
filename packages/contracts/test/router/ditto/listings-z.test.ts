@@ -216,19 +216,48 @@ describe("DittoModule", () => {
 
         console.log("swapData: ", swapData)
 
-        const args = {
-            nftIds: [tokenId04],
-            maxExpectedTokenInput: parseEther("1.2"),
-            tokenSender: alice.address,
-            nftRecipient: alice.address,
-            swapData: swapData
-        };
-   
-        await dittoPool.connect(alice).swapTokensForNfts(args);
+  
+        const fillTo: string = alice.address;
+        const refundTo: string = alice.address;
+        const revertIfIncomplete: boolean = false;
+        const tokenAddress00: string = token.address;
+        const amountPayment: BigNumber = parseEther("1.2");
+
+        const eRC20ListingParams = [
+            fillTo,
+            refundTo,
+            revertIfIncomplete,
+            tokenAddress00,
+            amountPayment
+        ];
+        const recipient: string = dittoPool.address;
+        const amountFee: BigNumber = parseEther("0");
+        const fee = [
+            recipient,
+            amountFee
+        ];
+        const orderParams = [
+            [tokenId04],
+            swapData
+        ];
+        const buyWithERC20 = [
+            [dittoPool.address],
+            [orderParams],
+            eRC20ListingParams,
+            [fee]
+        ];
+        let data = dittoModule.interface.encodeFunctionData("buyWithERC20", buyWithERC20);
+        const executions = [
+            dittoModule.address,
+            data,
+            0
+        ];
+        await router.execute([executions]);
         await nft.ownerOf(tokenId04).then((owner: any) => {
-           expect(owner).to.eq(alice.address);
+            expect(owner).to.eq(fillTo);
         });
-    
+
+
     });
 
 });
