@@ -60,11 +60,11 @@ describe("DittoModule", () => {
         
         await nft.connect(alice).mint(alice.address, tokenId04);
         await nft.connect(alice).setApprovalForAll(dittoPoolFactory.address, true);
-        await token.connect(alice).mint(alice.address, parseEther("1"));
+        await token.connect(alice).mint(alice.address, parseEther("100"));
         await token.connect(alice).approve(dittoPoolFactory.address, parseEther("100"));
         
         await token.balanceOf(alice.address).then((balance: any) => {
-            expect(balance).to.equal(parseEther("1"));
+            expect(balance).to.equal(parseEther("100"));
         });
 
         await nft.ownerOf(tokenId04).then((owner: string) => {
@@ -143,6 +143,8 @@ describe("DittoModule", () => {
             abiDittoAppraisal,
             ethers.provider 
         );
+
+        await token.connect(alice).approve(dittoPool.address, parseEther("100"));
        
         const oracleAddress: any = await dittoPool.oracle();
         console.log("oracleAddress: ", oracleAddress);
@@ -207,17 +209,6 @@ describe("DittoModule", () => {
   
         
         await dittoPool.connect(alice).swapTokensForNfts(args);
-
-
-
-        const upshotOracle: Contract = new Contract(
-            oracleAddress,
-            abiUpshotOracle,
-            ethers.provider 
-        );
-
-        const value00: any = await upshotOracle.value00();
-        console.log("value00: ", value00);
   
 
 

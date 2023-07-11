@@ -89,17 +89,11 @@ describe("DittoModule", () => {
         const xxx = await dittoPoolApp.connect(deployer).soLaLa(swapData);
         let output = await xxx.wait(); 
         const event00: any = output.events.find((event: { event: string; }) => event.event === 'Event00');
-        //const dpAddress = event.args.dittoPool;
+        
         console.log("event.args: ", event00.args);
  
         const event01: any = output.events.find((event: { event: string; }) => event.event === 'Event01');
         console.log("event.args: ", event01.args);
-        
-        
-        
-        //const yyy = await dittoPoolApp.
- 
-  
 
 
     });
