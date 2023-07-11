@@ -7,7 +7,7 @@ import { expect } from "chai";
 import abiErc20 from "../../../../sdk/src/ditto/abis/Erc20.json";
 import abiErc721 from "../../../../sdk/src/ditto/abis/Erc721.json";
 import abiDittoAppraisal from "../../../../sdk/src/ditto/abis/Appraisal.json";
-import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/PoolFactory.json";
+import abiDittoPool from "../../../../sdk/src/ditto/abis/Pool.json";
 import abiUpshotOracle from "../../../../sdk/src/ditto/abis/Oracle.json";
 import { config as dotEnvConfig } from "dotenv";
 dotEnvConfig();
@@ -15,9 +15,7 @@ dotEnvConfig();
 import * as Sdk from "../../../../sdk/src";
 
 /**
- * run with the following command:
- * 
- * BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/listings.test.ts
+ DittoPoolApp "0x397728d72fd38F565eb554E14Fb29CD59243C9ba"
  */
 describe("DittoModule", () => {
 
@@ -37,18 +35,11 @@ describe("DittoModule", () => {
 
     it("x", async () => {
 
-        const upshotOracle: Contract = new Contract(
-            "0xF5f5Da0CB3cB0619d8384905172131eE5f039b0E",
-            abiUpshotOracle,
+        const dittoPoolApp: Contract = new Contract(
+            "0x397728d72fd38F565eb554E14Fb29CD59243C9ba",
+            abiDittoPool,
             ethers.provider 
         );
-
-        let nonce = await upshotOracle.getNonce("0x3BcEcaE1a61f53Ead737fBd801C9D9873917e5C6"); //
-        console.log("                       nonce", nonce);
-        
-
-        const authenticatorAddress00 = await upshotOracle.authenticator();
-        console.log("      authenticatorAddress00", authenticatorAddress00);
 
         const wallet = new ethers.Wallet(process.env.PRIVATE_KEY);
         console.log("              wallet.address", wallet.address); 
@@ -83,21 +74,30 @@ describe("DittoModule", () => {
             signature: flatSig,
             nonce: 1,
             nft: "0x3BcEcaE1a61f53Ead737fBd801C9D9873917e5C6",
-            nftId: 4,
-            token: "0x607702b48528C2883ADF0A24b8A5e1b5988082d6",
-            price: 100,
             timestamp: timestamp, //0,
-            expiration: "79228162514264337593543950335"    
+            token: "0x607702b48528C2883ADF0A24b8A5e1b5988082d6",
+            expiration: "79228162514264337593543950335",
+            nftId: 4,
+            price: 100
         };
-        
 
-        // const txResponse = await upshotOracle.connect(deployer).decodeTokenPrices([priceData]);
-        // const txReceipt = await txResponse.wait();
+        const swapData = ethers.utils.defaultAbiCoder.encode(
+            ['tuple(bytes signature,uint256 nonce,address nft,uint96 timestamp,address token,uint96 expiration,uint256 nftId,uint256 price)[]'],
+            [[priceData]]
+          );
+          
+        const xxx = await dittoPoolApp.connect(deployer).soLaLa(swapData);
+        let output = await xxx.wait(); 
+        const event00: any = output.events.find((event: { event: string; }) => event.event === 'Event00');
+        //const dpAddress = event.args.dittoPool;
+        console.log("event.args: ", event00.args);
  
+        const event01: any = output.events.find((event: { event: string; }) => event.event === 'Event01');
+        console.log("event.args: ", event01.args);
         
         
         
-       
+        //const yyy = await dittoPoolApp.
  
   
 
