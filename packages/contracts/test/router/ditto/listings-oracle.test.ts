@@ -183,15 +183,15 @@ describe("DittoModule", () => {
             signature: flatSig,
             nonce: 1,
             nft: "0x3BcEcaE1a61f53Ead737fBd801C9D9873917e5C6",
-            nftId: tokenId04,
-            token: "0x607702b48528C2883ADF0A24b8A5e1b5988082d6",
-            price: price,
             timestamp: timestamp, //0,
-            expiration: expiration //"79228162514264337593543950335"    
+            token: "0x607702b48528C2883ADF0A24b8A5e1b5988082d6",
+            expiration: "79228162514264337593543950335",
+            nftId: 4,
+            price: 100
         };
 
         const swapData = ethers.utils.defaultAbiCoder.encode(
-            ['tuple(bytes signature,uint256 nonce,address nft,uint256 nftId,address token,uint256 price,uint96 timestamp,uint96 expiration)[]'],
+            ['tuple(bytes signature,uint256 nonce,address nft,uint96 timestamp,address token,uint96 expiration,uint256 nftId,uint256 price)[]'],
             [[priceData]]
           );
 
