@@ -8,7 +8,6 @@ import MerkleTree from "merkletreejs";
 
 import { logger } from "@/common/logger";
 import { baseProvider } from "@/common/provider";
-import { bn } from "@/common/utils";
 import { config } from "@/config/index";
 import { Transaction } from "@/models/transactions";
 import {
@@ -17,7 +16,14 @@ import {
   simulateAndUpsertCollectionMint,
 } from "@/orderbook/mints";
 import { fetchMetadata, getStatus, toSafeTimestamp } from "@/orderbook/mints/calldata/helpers";
-import { AllowlistItem, allowlistExists, createAllowlist } from "@/orderbook/mints/allowlists";
+import {
+  AllowlistItem,
+  allowlistExists,
+  createAllowlist,
+  getAllowlist,
+} from "@/orderbook/mints/allowlists";
+
+const STANDARD = "thirdweb";
 
 export const extractByCollection = async (
   collection: string,
@@ -31,7 +37,12 @@ export const extractByCollection = async (
       ...["function contractURI() view returns (string)"],
       ...(isERC1155
         ? [
-            "function getActiveClaimConditionId(uint256 tokenId) view returns (uint256)",
+            `function claimCondition(uint256 tokenId) view returns (
+              (
+                uint256 currentStartId,
+                uint256 count
+              )
+            )`,
             `function getClaimConditionById(uint256 tokenId, uint256 conditionId) view returns (
               (
                 uint256 startTimestamp,
@@ -46,7 +57,12 @@ export const extractByCollection = async (
             )`,
           ]
         : [
-            "function getActiveClaimConditionId() view returns (uint256)",
+            `function claimCondition() view returns (
+              (
+                uint256 currentStartId,
+                uint256 count
+              )
+            )`,
             `function getClaimConditionById(uint256 conditionId) view returns (
               (
                 uint256 startTimestamp,
@@ -68,126 +84,37 @@ export const extractByCollection = async (
   try {
     // Thirdweb mints can have a single active stage at any particular time
 
-    const claimConditionId = bn(
-      isERC1155 ? await c.getActiveClaimConditionId(tokenId) : await c.getActiveClaimConditionId()
-    ).toNumber();
+    const { currentStartId, count } = isERC1155
+      ? await c.claimCondition(tokenId)
+      : await c.claimCondition();
 
-    const claimCondition = isERC1155
-      ? await c.getClaimConditionById(tokenId, claimConditionId)
-      : await c.getClaimConditionById(claimConditionId);
+    for (
+      let claimConditionId = currentStartId.toNumber();
+      claimConditionId < Math.min(currentStartId.toNumber() + count.toNumber(), 10);
+      claimConditionId++
+    ) {
+      const claimCondition = isERC1155
+        ? await c.getClaimConditionById(tokenId, claimConditionId)
+        : await c.getClaimConditionById(claimConditionId);
 
-    const currency = claimCondition.currency.toLowerCase();
-    if (currency === Sdk.ZeroExV4.Addresses.Eth[config.chainId]) {
-      const price = claimCondition.pricePerToken.toString();
-      const maxMintsPerWallet = claimCondition.quantityLimitPerWallet.eq(0)
-        ? null
-        : claimCondition.quantityLimitPerWallet.toString();
+      const currency = claimCondition.currency.toLowerCase();
+      if (currency === Sdk.ZeroExV4.Addresses.Eth[config.chainId]) {
+        const price = claimCondition.pricePerToken.toString();
+        const maxMintsPerWallet =
+          claimCondition.quantityLimitPerWallet.eq(0) ||
+          claimCondition.quantityLimitPerWallet.eq(MaxUint256)
+            ? null
+            : claimCondition.quantityLimitPerWallet.toString();
 
-      // Public sale
-      if (claimCondition.merkleRoot === HashZero) {
-        results.push({
-          collection,
-          contract: collection,
-          stage: `claim-${claimConditionId}`,
-          kind: "public",
-          status: "open",
-          standard: "thirdweb",
-          details: {
-            tx: {
-              to: collection,
-              data: {
-                // `claim`
-                signature: isERC1155 ? "0x57bc3d78" : "0x84bb1e42",
-                params: [
-                  {
-                    kind: "recipient",
-                    abiType: "address",
-                  },
-                  isERC1155
-                    ? {
-                        kind: "unknown",
-                        abiKind: "uint256",
-                        abiValue: tokenId!,
-                      }
-                    : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      (undefined as any),
-                  {
-                    kind: "quantity",
-                    abiType: "uint256",
-                  },
-                  {
-                    kind: "unknown",
-                    abiType: "address",
-                    abiValue: currency,
-                  },
-                  {
-                    kind: "unknown",
-                    abiType: "uint256",
-                    abiValue: price,
-                  },
-                  {
-                    kind: "unknown",
-                    abiType: "(bytes32[],uint256,uint256,address)",
-                    abiValue: [[HashZero], maxMintsPerWallet, price, currency],
-                  },
-                  {
-                    kind: "unknown",
-                    abiType: "bytes",
-                    abiValue: "0x",
-                  },
-                ].filter(Boolean),
-              },
-            },
-          },
-          currency: Sdk.Common.Addresses.Eth[config.chainId],
-          price,
-          tokenId,
-          maxMintsPerWallet,
-          maxSupply: claimCondition.maxClaimableSupply.toString(),
-          startTime: toSafeTimestamp(claimCondition.startTimestamp),
-        });
-      }
-
-      // Allowlist sale
-      if (claimCondition.merkleRoot !== HashZero) {
-        let allowlistCreated = true;
-        if (!(await allowlistExists(claimCondition.merkleRoot))) {
-          // Fetch contract metadata
-          const contractURI = await c.contractURI();
-          const contractMetadata = await fetchMetadata(contractURI);
-
-          // Fetch merkle root metadata
-          const merkleURI = contractMetadata.merkle[claimCondition.merkleRoot];
-          const merkleMetadata = await fetchMetadata(merkleURI);
-
-          // Fetch merkle entries metadata
-          const entriesURI = merkleMetadata.originalEntriesUri;
-          const entriesMetadata = await fetchMetadata(entriesURI);
-
-          const items: AllowlistItem[] = entriesMetadata.map(
-            (e: { address: string; maxClaimable: string; price: string }) => ({
-              address: e.address,
-              maxMints: String(e.maxClaimable),
-              price: e.price ?? price,
-              actualPrice: e.price ?? price,
-            })
-          );
-
-          if (generateMerkleTree(items).tree.getHexRoot() === claimCondition.merkleRoot) {
-            await createAllowlist(claimCondition.merkleRoot, items);
-          } else {
-            allowlistCreated = false;
-          }
-        }
-
-        if (allowlistCreated) {
+        // Public sale
+        if (claimCondition.merkleRoot === HashZero) {
           results.push({
             collection,
             contract: collection,
             stage: `claim-${claimConditionId}`,
-            kind: "allowlist",
+            kind: "public",
             status: "open",
-            standard: "thirdweb",
+            standard: STANDARD,
             details: {
               tx: {
                 to: collection,
@@ -214,15 +141,17 @@ export const extractByCollection = async (
                     {
                       kind: "unknown",
                       abiType: "address",
-                      abiValue: Sdk.ZeroExV4.Addresses.Eth[config.chainId],
+                      abiValue: currency,
                     },
                     {
-                      kind: "allowlist",
+                      kind: "unknown",
                       abiType: "uint256",
+                      abiValue: price,
                     },
                     {
-                      kind: "allowlist",
+                      kind: "unknown",
                       abiType: "(bytes32[],uint256,uint256,address)",
+                      abiValue: [[HashZero], maxMintsPerWallet, price, currency],
                     },
                     {
                       kind: "unknown",
@@ -234,22 +163,120 @@ export const extractByCollection = async (
               },
             },
             currency: Sdk.Common.Addresses.Eth[config.chainId],
+            price,
             tokenId,
+            maxMintsPerWallet,
             maxSupply: claimCondition.maxClaimableSupply.toString(),
             startTime: toSafeTimestamp(claimCondition.startTimestamp),
-            allowlistId: claimCondition.merkleRoot,
           });
+        }
+
+        // Allowlist sale
+        if (claimCondition.merkleRoot !== HashZero) {
+          let allowlistCreated = true;
+          if (!(await allowlistExists(claimCondition.merkleRoot))) {
+            // Fetch contract metadata
+            const contractURI = await c.contractURI();
+            const contractMetadata = await fetchMetadata(contractURI);
+
+            // Fetch merkle root metadata
+            const merkleURI = contractMetadata.merkle[claimCondition.merkleRoot];
+            const merkleMetadata = await fetchMetadata(merkleURI);
+
+            // Fetch merkle entries metadata
+            const entriesURI = merkleMetadata.originalEntriesUri;
+            const entriesMetadata = await fetchMetadata(entriesURI);
+
+            const items: AllowlistItem[] = entriesMetadata.map(
+              (e: { address: string; maxClaimable: string; price: string }) => ({
+                address: e.address,
+                maxMints: String(e.maxClaimable),
+                price: e.price ?? price,
+                actualPrice: e.price ?? price,
+              })
+            );
+
+            if (generateMerkleTree(items).tree.getHexRoot() === claimCondition.merkleRoot) {
+              await createAllowlist(claimCondition.merkleRoot, items);
+            } else {
+              allowlistCreated = false;
+            }
+          }
+
+          if (allowlistCreated) {
+            results.push({
+              collection,
+              contract: collection,
+              stage: `claim-${claimConditionId}`,
+              kind: "allowlist",
+              status: "open",
+              standard: STANDARD,
+              details: {
+                tx: {
+                  to: collection,
+                  data: {
+                    // `claim`
+                    signature: isERC1155 ? "0x57bc3d78" : "0x84bb1e42",
+                    params: [
+                      {
+                        kind: "recipient",
+                        abiType: "address",
+                      },
+                      isERC1155
+                        ? {
+                            kind: "unknown",
+                            abiKind: "uint256",
+                            abiValue: tokenId!,
+                          }
+                        : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          (undefined as any),
+                      {
+                        kind: "quantity",
+                        abiType: "uint256",
+                      },
+                      {
+                        kind: "unknown",
+                        abiType: "address",
+                        abiValue: Sdk.ZeroExV4.Addresses.Eth[config.chainId],
+                      },
+                      {
+                        kind: "allowlist",
+                        abiType: "uint256",
+                      },
+                      {
+                        kind: "allowlist",
+                        abiType: "(bytes32[],uint256,uint256,address)",
+                      },
+                      {
+                        kind: "unknown",
+                        abiType: "bytes",
+                        abiValue: "0x",
+                      },
+                    ].filter(Boolean),
+                  },
+                },
+              },
+              currency: Sdk.Common.Addresses.Eth[config.chainId],
+              tokenId,
+              maxSupply: claimCondition.maxClaimableSupply.toString(),
+              startTime: toSafeTimestamp(claimCondition.startTimestamp),
+              allowlistId: claimCondition.merkleRoot,
+            });
+          }
         }
       }
     }
   } catch (error) {
-    logger.error("mint-detector", JSON.stringify({ kind: "thirdweb", error }));
+    logger.error("mint-detector", JSON.stringify({ kind: STANDARD, error }));
   }
 
   // Update the status of each collection mint
   await Promise.all(
     results.map(async (cm) => {
-      cm.status = await getStatus(cm);
+      await getStatus(cm).then(({ status, reason }) => {
+        cm.status = status;
+        cm.statusReason = reason;
+      });
     })
   );
 
@@ -297,7 +324,7 @@ export const extractByTx = async (
 };
 
 export const refreshByCollection = async (collection: string) => {
-  const existingCollectionMints = await getCollectionMints(collection, { standard: "thirdweb" });
+  const existingCollectionMints = await getCollectionMints(collection, { standard: STANDARD });
 
   const uniqueTokenIds = [...new Set(existingCollectionMints.map(({ tokenId }) => tokenId))];
   for (const tokenId of uniqueTokenIds) {
@@ -370,7 +397,14 @@ const generateMerkleTree = (
   };
 };
 
-export const generateProofValue = (items: AllowlistItem[], address: string) => {
+type ProofValue = [string[], string, string, string];
+
+export const generateProofValue = async (
+  collectionMint: CollectionMint,
+  address: string
+): Promise<ProofValue> => {
+  const items = await getAllowlist(collectionMint.allowlistId!);
+
   const { roots, shards, tree } = generateMerkleTree(items);
 
   const shardId = address.slice(2, 2 + SHARD_NYBBLES).toLowerCase();
@@ -383,5 +417,10 @@ export const generateProofValue = (items: AllowlistItem[], address: string) => {
 
   const item = items.find((i) => i.address === address)!;
   const itemProof = shardTree.getHexProof(hashFn(item));
-  return [itemProof.concat(shardProof), item.maxMints ?? 0, item.price ?? MaxUint256, AddressZero];
+  return [
+    itemProof.concat(shardProof),
+    item.maxMints ?? "0",
+    item.price ?? MaxUint256.toString(),
+    AddressZero,
+  ];
 };
