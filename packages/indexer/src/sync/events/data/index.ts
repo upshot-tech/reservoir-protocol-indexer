@@ -41,6 +41,7 @@ import * as paymentProcessor from "@/events-sync/data/payment-processor";
 import * as thirdweb from "@/events-sync/data/thirdweb";
 import * as blurV2 from "@/events-sync/data/blur-v2";
 import * as seadrop from "@/events-sync/data/seadrop";
+import * as dittoswap from "@/events-sync/data/dittoswap";
 
 // All events we're syncing should have an associated `EventData`
 // entry which dictates the way the event will be parsed and then
@@ -84,7 +85,9 @@ export type EventKind =
   | "payment-processor"
   | "thirdweb"
   | "seadrop"
-  | "blur-v2";
+  | "blur-v2"
+  | "dittoswap";
+
 
 // Event sub-kind in each of the above protocol/standard
 export type EventSubKind =
@@ -255,6 +258,18 @@ export type EventSubKind =
   | "sudoswap-v2-delta-update"
   | "sudoswap-v2-new-erc721-pair"
   | "sudoswap-v2-new-erc1155-pair"
+  | "dittoswap-admin-set-protocol-fee"
+  | "dittoswap-admin-set-protocol-fee-multiplier"
+  | "dittoswap-pool-initialized"
+  | "dittoswap-change-base-price"
+  | "dittoswap-change-delta"
+  | "dittoswap-change-admin-fee-recipient"
+  | "dittoswap-change-admin-fee"
+  | "dittoswap-change-admin-lp-fee"
+  | "dittoswap-trade-swapped-tokens-for-nft"
+  | "dittoswap-trade-swapped-nft-for-tokens"
+  | "dittoswap-liquidity-added"
+  | "dittoswap-liquidity-removed"
   | "payment-processor-buy-single-listing"
   | "payment-processor-master-nonce-invalidated"
   | "payment-processor-nonce-invalidated"
@@ -267,6 +282,7 @@ export type EventSubKind =
   | "blur-v2-execution-721-packed"
   | "blur-v2-execution-721-taker-fee-packed"
   | "blur-v2-execution-721-maker-fee-packed";
+
 
 export type EventData = {
   kind: EventKind;
@@ -443,6 +459,18 @@ const allEventData = [
   sudoswapV2.newERC721Pair,
   sudoswapV2.newERC1155Pair,
   treasure.bidAccepted,
+  dittoswap.adminSetProtocolFee,
+  dittoswap.adminSetProtocolFeeMultiplier,
+  dittoswap.poolinitialized,
+  dittoswap.changeBasePrice,
+  dittoswap.changeDelta,
+  dittoswap.changeAdminFeeRecipient,
+  dittoswap.changeAdminChangedAdminFee,
+  dittoswap.changeAdminChangedLpFee,
+  dittoswap.tradeSwappedTokensForNft,
+  dittoswap.tradeSwappedNftForTokens,
+  dittoswap.liquidityAdded,
+  dittoswap.liquidityRemoved,
   paymentProcessor.buySingleListing,
   paymentProcessor.masterNonceInvalidated,
   paymentProcessor.nonceInvalidated,

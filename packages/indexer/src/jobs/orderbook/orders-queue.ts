@@ -230,6 +230,14 @@ export type GenericOrderInfo =
       validateBidValue?: boolean;
       ingestMethod?: "websocket" | "rest";
       ingestDelay?: number;
+    }
+  | {
+      kind: "dittoswap";
+      info: orders.dittoswap.OrderInfo;
+      relayToArweave?: boolean;
+      validateBidValue?: boolean;
+      ingestMethod?: "websocket" | "rest";
+      ingestDelay?: number;
     };
 
 export const jobProcessor = async (job: Job) => {
@@ -330,6 +338,11 @@ export const jobProcessor = async (job: Job) => {
 
       case "collectionxyz": {
         result = await orders.collectionxyz.save([info]);
+        break;
+      }
+
+      case "dittoswap": {
+        result = await orders.dittoswap.save([info]);
         break;
       }
     }

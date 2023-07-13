@@ -40,6 +40,7 @@ import * as ZeroExV3 from "./zeroex-v3";
 import * as ZeroExV4 from "./zeroex-v4";
 import * as Zora from "./zora";
 import * as LooksRareV2 from "./looks-rare-v2";
+import * as Dittoswap from "./dittoswap";
 import * as Blend from "./blend";
 import * as SudoswapV2 from "./sudoswap-v2";
 import * as PaymentProcessor from "./payment-processor";
@@ -112,6 +113,7 @@ export {
   ZeroExV4,
   Zora,
   LooksRareV2,
+  Dittoswap,
   Blend,
   SudoswapV2,
   PaymentProcessor,

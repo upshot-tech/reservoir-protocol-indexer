@@ -143,6 +143,11 @@ export type GenericOrder =
       order: Sdk.LooksRareV2.Order;
     }
   | {
+      kind: "dittoswap";
+      order: Sdk.Dittoswap.Order
+    }
+  |
+    {
       kind: "sudoswap-v2";
       order: Sdk.SudoswapV2.Order;
     }
