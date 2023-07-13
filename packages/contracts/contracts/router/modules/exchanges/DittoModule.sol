@@ -41,7 +41,6 @@ contract DittoModule is BaseExchangeModule {
       Fee[] calldata fees
     )
     external
-    payable
     nonReentrant
     refundERC20Leftover(params.refundTo, params.token)
     chargeERC20Fees(fees, params.token, params.amount)
@@ -65,5 +64,34 @@ contract DittoModule is BaseExchangeModule {
         }
       }
     }
+  
+
+    function test(DittoOrderParams[] calldata orderParams)
+    external
+    payable
+    {
+      uint256 pairsLength = pairs.length;
+      for (uint256 i; i < pairsLength; ) {
+
+        // Execute fill
+        IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
+          nftIds: orderParams[i].nftIds,
+          maxExpectedTokenInput: params.amount,
+          tokenSender: params.fillTo,
+          nftRecipient: params.fillTo,
+          swapData: orderParams[i].swapData
+        }); 
+
+        pairs[i].swapTokensForNfts(args);
+
+        unchecked {
+          ++i;
+        }
+      }
+    }
+
+
+
+    
 
 }
