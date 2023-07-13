@@ -17,52 +17,54 @@ struct DittoOrderParams {
 }
 
 contract DittoModule is BaseExchangeModule {
-    using SafeTransferLib for ERC20;
-  
-    // --- Constructor ---
-    constructor(address owner, address router) BaseModule(owner) BaseExchangeModule(router) {}
+  using SafeTransferLib for ERC20;
 
-    // --- Multiple ERC20 listing ---
-    function poolTransferErc20From(
-      ERC20 token,
-      address from,  
-      address to,
-      uint256 amount
-    ) external virtual 
-    {
-      // transfer tokens to txn sender
-      token.safeTransferFrom(from, to, amount);
-    }
+  // --- Constructor ---
+  constructor(address owner, address router) BaseModule(owner) BaseExchangeModule(router) {}
 
-    function buyWithERC20(
-      IDittoPool[] calldata pairs,
-      DittoOrderParams[] calldata orderParams,
-      ERC20ListingParams calldata params,
-      Fee[] calldata fees
-    )
-    external
-    nonReentrant
-    refundERC20Leftover(params.refundTo, params.token)
-    chargeERC20Fees(fees, params.token, params.amount)
-    {
-      uint256 pairsLength = pairs.length;
-      for (uint256 i; i < pairsLength; ) {
+  // --- Multiple ERC20 listing ---
+  function poolTransferErc20From(
+    ERC20 token,
+    address from,  
+    address to,
+    uint256 amount
+  ) 
+  external 
+  virtual 
+  {
+    // transfer tokens to txn sender
+    token.safeTransferFrom(from, to, amount);
+  }
 
-        // Execute fill
-        IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
-          nftIds: orderParams[i].nftIds,
-          maxExpectedTokenInput: params.amount,
-          tokenSender: params.fillTo,
-          nftRecipient: params.fillTo,
-          swapData: orderParams[i].swapData
-        }); 
+  function buyWithERC20(
+    IDittoPool[] calldata pairs,
+    DittoOrderParams[] calldata orderParams,
+    ERC20ListingParams calldata params,
+    Fee[] calldata fees
+  )
+  external
+  nonReentrant
+  refundERC20Leftover(params.refundTo, params.token)
+  chargeERC20Fees(fees, params.token, params.amount)
+  {
+    uint256 pairsLength = pairs.length;
+    for (uint256 i; i < pairsLength; ) {
 
-        pairs[i].swapTokensForNfts(args);
+      // Execute fill
+      IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
+        nftIds: orderParams[i].nftIds,
+        maxExpectedTokenInput: params.amount,
+        tokenSender: params.fillTo,
+        nftRecipient: params.fillTo,
+        swapData: orderParams[i].swapData
+      }); 
 
-        unchecked {
-          ++i;
-        }
+      pairs[i].swapTokensForNfts(args);
+
+      unchecked {
+        ++i;
       }
     }
+  }
   
 }
