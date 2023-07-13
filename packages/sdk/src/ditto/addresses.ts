@@ -23,7 +23,7 @@ export const Test20: ChainIdToAddress = {
 
 export const UpshotOracle: ChainIdToAddress = {
   [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
-  [Network.EthereumGoerli]: "0xd74Eb604c4f2A206feE166dAA9DC3924eaAD6720",
+  [Network.EthereumGoerli]: "0x24D3906675C35590B95c9Cc393ab11619624e840",
 };
 
 

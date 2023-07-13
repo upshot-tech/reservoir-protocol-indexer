@@ -15,7 +15,7 @@ import * as Sdk from "../../../../sdk/src";
 /**
  * run with the following command:
  * 
- * BLOCK_NUMBER="9329923" npx hardhat test test/router/ditto/listings-oracle.test.ts
+ * BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/listings-oracle.test.ts
  */
 describe("DittoModule", () => {
 
@@ -33,7 +33,6 @@ describe("DittoModule", () => {
         let adminAddress = "0x00000000000000000000000000000000DeaDBeef";
         alice = await ethers.getImpersonatedSigner(adminAddress); 
         
-
         initialTokenBalance = "10000000000000000000";
 
         router = await ethers.getContractFactory("ReservoirV6_0_1", deployer).then((factory) => 
@@ -50,14 +49,12 @@ describe("DittoModule", () => {
         const tokenId04 = 4;
 
         const nft: Contract = new Contract(
-            //ethers.utils.getAddress("0x5979F4164A5873f23e354090f0a70bC7a60D0CA1"),
             Sdk.Ditto.Addresses.Test721[5],
             abiErc721,
             ethers.provider 
         );
     
         const token: Contract = new Contract(
-            //ethers.utils.getAddress("0x3e614639A6F5eA8B3698024031a9CAf211aC45EF"),
             Sdk.Ditto.Addresses.Test20[5],
             abiErc20,
             ethers.provider 
@@ -74,7 +71,6 @@ describe("DittoModule", () => {
         await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
 
 
-        
         await nft.connect(alice).mint(alice.address, tokenId04);
         await nft.connect(alice).setApprovalForAll(dittoPoolFactory.address, true);
         await token.connect(alice).mint(alice.address, parseEther("100"));
@@ -90,28 +86,19 @@ describe("DittoModule", () => {
             expect(owner).to.equal(alice.address);
         });
 
-        //let ORACLE_ADDRESS = "0xB686C09fD6d9d86C462B82B0b23EF275833805E3";
-        let ORACLE_ADDRESS = "0x24D3906675C35590B95c9Cc393ab11619624e840";
-
         const upshotOracle: Contract = new Contract(
-            ORACLE_ADDRESS,
+            Sdk.Ditto.Addresses.UpshotOracle[5],
             abiUpshotOracle,
             ethers.provider 
         );
-        const authenticatorAddress00 = await upshotOracle.authenticator();
-        console.log("authenticatorAddress00", authenticatorAddress00);
-        const authenticatorSigner: SignerWithAddress = await ethers.getImpersonatedSigner(authenticatorAddress00);
+        const authenticatorAddress = await upshotOracle.authenticator();
+        const authenticatorSigner: SignerWithAddress = await ethers.getImpersonatedSigner(authenticatorAddress);
         await upshotOracle.connect(authenticatorSigner).setAuthenticator(deployer.address);
-        const authenticatorAddress01 = await upshotOracle.authenticator();
-        console.log("authenticatorAddress01", authenticatorAddress01);
-        console.log("      deployer.address", deployer.address);
-
-
 
         const isPrivatePool: any = false;
         const templateIndex: any = 6; //DittoPoolApp
-        const tokenAddress: any = token.address; //"0x607702b48528C2883ADF0A24b8A5e1b5988082d6";
-        const nftAddress: any = nft.address; //"0x3BcEcaE1a61f53Ead737fBd801C9D9873917e5C6";
+        const tokenAddress: any = token.address;
+        const nftAddress: any = nft.address;
         const feeLp: any = 0;
         const ownerAddress: any = alice.address;
         const feeAdmin: any = 0;
@@ -119,7 +106,7 @@ describe("DittoModule", () => {
         const basePrice: any = 0; //NOOP
         const nftIdList: any[] = [tokenId04];
         const initialTokenBalance: any = "1000000000000000000";
-        const templateInitData: any = ethers.utils.defaultAbiCoder.encode(["address", "uint256", "uint256"], [ORACLE_ADDRESS, "1", "10000000000000000000"]);
+        const templateInitData: any = ethers.utils.defaultAbiCoder.encode(["address", "uint256", "uint256"], [Sdk.Ditto.Addresses.UpshotOracle[5], "1", "10000000000000000000"]);
         const referrer: any = new Uint8Array([]);
 
         const poolTemplate: any = {
@@ -156,7 +143,6 @@ describe("DittoModule", () => {
             liquidityDepositPermissionData: liquidityDepositPermissionData
         };
 
-        console.log("-- A --");
         const txn06 = await dittoPoolFactory.connect(deployer).createDittoPool(
             poolTemplate,
             poolManagerTemplate,
@@ -166,12 +152,6 @@ describe("DittoModule", () => {
 
         const event: any = output.events.find((event: { event: string; }) => event.event === 'DittoPoolFactoryDittoPoolCreated');
         const dpAddress = event.args.dittoPool;
-    
-        try {
-            console.log(`DittoPoolApp: ${dpAddress}`);
-        } catch (err) {
-            console.error('Error occurred:', err);
-        }
 
         const dittoPool: Contract = new Contract(
             dpAddress,
@@ -182,12 +162,10 @@ describe("DittoModule", () => {
         await token.connect(alice).approve(dittoPool.address, parseEther("100"));
        
         const oracleAddress: any = await dittoPool.oracle();
-        console.log("oracleAddress: ", oracleAddress);
-        expect(oracleAddress).to.eq(ORACLE_ADDRESS);
+        expect(oracleAddress).to.eq(Sdk.Ditto.Addresses.UpshotOracle[5]);
 
-        //const wallet = new ethers.Wallet(process.env.PRIVATE_KEY);
-        //console.log("              wallet.address", wallet.address); 
-
+        let chainId = 5;
+        let nonce = 1;
         let timestamp = 0;
         let expiration = "79228162514264337593543950335"
         let price = "1000000000000000000"
@@ -203,29 +181,27 @@ describe("DittoModule", () => {
                 'uint96'
             ],
             [
-                5, //block.chainId
-                1, //data.nonce,
-                nft.address, //"0x3BcEcaE1a61f53Ead737fBd801C9D9873917e5C6", //data.nft, 
-                tokenId04, //data.nftId, 
-                token.address, //"0x607702b48528C2883ADF0A24b8A5e1b5988082d6", //data.token, 
-                price, //data.price, 
-                timestamp, //0, //data.timestamp,
-                expiration //"79228162514264337593543950335", //data.expiration
+                chainId,
+                nonce,
+                nft.address, 
+                tokenId04,
+                token.address, 
+                price,
+                timestamp,
+                expiration
             ]
         ); 
         let messageHashBytes = ethers.utils.arrayify(messageHash)
-        //let flatSig = await wallet.signMessage(messageHashBytes);
-
         let flatSig = await deployer.signMessage(messageHashBytes);
 
         const priceData: any = {
             signature: flatSig,
-            nonce: 1,
-            nft: nft.address, //"0x3BcEcaE1a61f53Ead737fBd801C9D9873917e5C6",
-            timestamp: timestamp, //0,
-            token: token.address, //"0x607702b48528C2883ADF0A24b8A5e1b5988082d6",
-            expiration: "79228162514264337593543950335",
-            nftId: 4,
+            nonce: nonce,
+            nft: nft.address,
+            timestamp: timestamp,
+            token: token.address, 
+            expiration: expiration,
+            nftId: tokenId04,
             price: price
         };
 
@@ -233,8 +209,6 @@ describe("DittoModule", () => {
             ['tuple(bytes signature,uint256 nonce,address nft,uint96 timestamp,address token,uint96 expiration,uint256 nftId,uint256 price)[]'],
             [[priceData]]
         );
-
-        //console.log("swapData: ", swapData);
 
         const fillTo: string = alice.address;
         const refundTo: string = alice.address;
