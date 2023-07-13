@@ -11,6 +11,7 @@ import { setupDittoListings } from "../helpers/ditto";
  * run with the following command:
  * 
  * BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/listings.test.ts
+ * BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/listings.test.ts
  */
 describe("DittoModule", () => {
 

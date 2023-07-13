@@ -16,22 +16,6 @@ struct DittoOrderParams {
   bytes swapData;
 }
 
-struct PriceData { 
-    bytes signature;
-    uint256 nonce;
-    address nft; 
-    uint96 timestamp;
-    address token; 
-    uint96 expiration;
-    uint256 nftId;
-    uint256 price; 
-}
-
-interface XXX {
-    function soLaLa(bytes calldata swapData_) external;
-    function value00() external view returns (PriceData memory);
-}
-
 contract DittoModule is BaseExchangeModule {
     using SafeTransferLib for ERC20;
   
@@ -81,30 +65,4 @@ contract DittoModule is BaseExchangeModule {
       }
     }
   
-
-    function test(DittoOrderParams[] calldata orderParams)
-    external
-    payable
-    {
-
-      console.log(" -- 0 -- ");
-
-      XXX(0x397728d72fd38F565eb554E14Fb29CD59243C9ba).soLaLa(orderParams[0].swapData);
-
-      console.log(" -- 1 -- ");
-
-      PriceData memory pd = XXX(0x397728d72fd38F565eb554E14Fb29CD59243C9ba).value00();
-
-      console.log(" -- 2 -- ");
-
-      console.log(pd.nftId);
-
-      console.log(" -- 3 -- ");
-
-    }
-
-
-
-    
-
 }
