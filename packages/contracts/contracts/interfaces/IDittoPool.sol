@@ -2,7 +2,6 @@
 pragma solidity ^0.8.9;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface IDittoPool {
     
@@ -65,11 +64,7 @@ interface IDittoPool {
         uint256 protocol;
     }
 
-    function getLpNft() external view returns (address);
-
-    function nft() external returns (IERC721);
-
-    function token() external returns (address);
+    function token() external returns (IERC20);
 
     function swapNftsForTokens(
         SwapNftsForTokensArgs calldata args_

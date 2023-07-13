@@ -8,8 +8,9 @@ import {BaseExchangeModule} from "./BaseExchangeModule.sol";
 import {BaseModule} from "../BaseModule.sol";
 import {IDittoPool} from "../../../interfaces/IDittoPool.sol";
 
-import { ERC20 } from "solmate/src/tokens/ERC20.sol";
-import { SafeTransferLib } from "solmate/src/utils/SafeTransferLib.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 
 struct DittoOrderParams {
   uint256[] nftIds;
@@ -70,29 +71,40 @@ contract DittoModule is BaseExchangeModule {
   // --- Single ERC721 offer ---
 
   function sell(
-    IDittoPool calldata pool,
+    IDittoPool pool,
     DittoOrderParams calldata orderParams,
+    uint256[] calldata lpIds,
+    bytes calldata permitterData,
     uint256 minOutput,
-    uint256 deadline,
     OfferParams calldata params,
     Fee[] calldata fees
   ) external nonReentrant {
-    //IERC721 collection = pool.nft();
+    
 
-    // Build router data
-    // swapNftsForTokens(
-    //     SwapNftsForTokensArgs calldata args_
-    // )
+      IERC20 token = pool.token();
+
       IDittoPool.SwapNftsForTokensArgs memory args = IDittoPool.SwapNftsForTokensArgs({
-        // nftIds: orderParams[i].nftIds,
-        // maxExpectedTokenInput: params.amount,
-        // tokenSender: params.fillTo,
-        // nftRecipient: params.fillTo,
-        // swapData: orderParams[i].swapData
-      }); 
+        nftIds: orderParams.nftIds,
+        lpIds: lpIds,
+        minExpectedTokenOutput: minOutput,
+        nftSender: params.fillTo,
+        tokenRecipient: params.fillTo,
+        permitterData: permitterData,
+        swapData: orderParams.swapData
+      });
 
-      pool.swapTokensForNfts(args);
+      pool.swapNftsForTokens(args);
 
+      // Pay fees
+      uint256 feesLength = fees.length;
+      for (uint256 i; i < feesLength; ) {
+        Fee memory fee = fees[i];
+        _sendERC20(fee.recipient, fee.amount, token);
+
+        unchecked {
+          ++i;
+        }
+      }
   }
   
 }
