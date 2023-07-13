@@ -77,46 +77,21 @@ contract DittoModule is BaseExchangeModule {
     OfferParams calldata params,
     Fee[] calldata fees
   ) external nonReentrant {
-    IERC721 collection = pool.nft();
+    //IERC721 collection = pool.nft();
 
     // Build router data
-    ICollectionRouter.PoolSwapSpecific[] memory swapList = new ICollectionRouter.PoolSwapSpecific[](
-      1
-    );
-    swapList[0] = ICollectionRouter.PoolSwapSpecific({
-      pool: pool,
-      nftIds: new uint256[](1),
-      proof: orderParams.proof,
-      proofFlags: orderParams.proofFlags,
-      externalFilterContext: orderParams.externalFilterContext
-    });
-    swapList[0].nftIds[0] = orderParams.nftId;
+    // swapNftsForTokens(
+    //     SwapNftsForTokensArgs calldata args_
+    // )
+      IDittoPool.SwapNftsForTokensArgs memory args = IDittoPool.SwapNftsForTokensArgs({
+        // nftIds: orderParams[i].nftIds,
+        // maxExpectedTokenInput: params.amount,
+        // tokenSender: params.fillTo,
+        // nftRecipient: params.fillTo,
+        // swapData: orderParams[i].swapData
+      }); 
 
-    // Execute fill
-    try COLLECTION_ROUTER.swapNFTsForToken(swapList, minOutput, address(this), deadline) {
-      ICollectionPool.PoolVariant variant = pool.poolVariant();
-
-      // Pay fees
-      uint256 feesLength = fees.length;
-      for (uint256 i; i < feesLength; ) {
-        Fee memory fee = fees[i];
-        uint8(variant) < 2
-          ? _sendETH(fee.recipient, fee.amount)
-          : _sendERC20(fee.recipient, fee.amount, pool.token());
-
-        unchecked {
-          ++i;
-        }
-      }
-
-      // Forward any left payment to the specified receiver
-      uint8(variant) < 2 ? _sendAllETH(params.fillTo) : _sendAllERC20(params.fillTo, pool.token());
-    } catch {
-      if (params.revertIfIncomplete) {
-        revert UnsuccessfulFill();
-      }
-    }
-
+      pool.swapTokensForNfts(args);
 
   }
   
