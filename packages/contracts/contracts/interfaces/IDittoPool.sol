@@ -5,6 +5,17 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface IDittoPool {
+    
+    struct PriceData { 
+        bytes signature;
+        uint256 nonce;
+        address nft; 
+        uint96 timestamp;
+        address token; 
+        uint96 expiration;
+        uint256 nftId;
+        uint256 price; 
+    }
 
     /**
      * @param nftIds The list of IDs of the NFTs to purchase

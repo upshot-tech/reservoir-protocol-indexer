@@ -1,62 +1,62 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import { console } from "hardhat/console.sol";
+
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {BaseExchangeModule} from "./BaseExchangeModule.sol";
 import {BaseModule} from "../BaseModule.sol";
-import {IDittoPool} from "../../../interfaces/IDitto.sol";
+import {IDittoPool} from "../../../interfaces/IDittoPool.sol";
 
 import { ERC20 } from "solmate/src/tokens/ERC20.sol";
 import { SafeTransferLib } from "solmate/src/utils/SafeTransferLib.sol";
 
+struct DittoOrderParams {
+  uint256[] nftIds;
+  bytes swapData;
+}
+
 contract DittoModule is BaseExchangeModule {
-    using SafeTransferLib for ERC20;
-  
-    // --- Constructor ---
-    constructor(address owner, address router) BaseModule(owner) BaseExchangeModule(router) {}
+  using SafeTransferLib for ERC20;
 
-    // --- Multiple ERC20 listing ---
-    function poolTransferErc20From(
-      ERC20 token,
-      address from,  
-      address to,
-      uint256 amount
-    ) external virtual 
-    {
-      // transfer tokens to txn sender
-      token.safeTransferFrom(from, to, amount);
-    }
+  // --- Constructor ---
+  constructor(address owner, address router) BaseModule(owner) BaseExchangeModule(router) {}
 
-    function buyWithERC20(
-      IDittoPool[] calldata pairs,
-      uint256[] calldata nftIds,
-      ERC20ListingParams calldata params,
-      Fee[] calldata fees
-    )
-    external
-    payable
-    nonReentrant
-    refundERC20Leftover(params.refundTo, params.token)
-    chargeERC20Fees(fees, params.token, params.amount)
-    {
-      uint256 pairsLength = pairs.length;
-      for (uint256 i; i < pairsLength; ) {
-      // Fetch the current price
-      (
-        , // uint8 error
-        , // uint256 newSpotPrice 
-        , // uint256 newDelta
-        uint256 inputAmount, 
-        // uint256 protocolFee
-      ) = pairs[i].getBuyNftQuote(1, "");
+  // --- Multiple ERC20 listing ---
+  function poolTransferErc20From(
+    ERC20 token,
+    address from,  
+    address to,
+    uint256 amount
+  ) 
+  external 
+  virtual 
+  {
+    // transfer tokens to txn sender
+    token.safeTransferFrom(from, to, amount);
+  }
+
+  function buyWithERC20(
+    IDittoPool[] calldata pairs,
+    DittoOrderParams[] calldata orderParams,
+    ERC20ListingParams calldata params,
+    Fee[] calldata fees
+  )
+  external
+  nonReentrant
+  refundERC20Leftover(params.refundTo, params.token)
+  chargeERC20Fees(fees, params.token, params.amount)
+  {
+    uint256 pairsLength = pairs.length;
+    for (uint256 i; i < pairsLength; ) {
 
       // Execute fill
       IDittoPool.SwapTokensForNftsArgs memory args = IDittoPool.SwapTokensForNftsArgs({
-        nftIds: nftIds,
-        maxExpectedTokenInput: inputAmount,
+        nftIds: orderParams[i].nftIds,
+        maxExpectedTokenInput: params.amount,
         tokenSender: params.fillTo,
         nftRecipient: params.fillTo,
-        swapData: ""
+        swapData: orderParams[i].swapData
       }); 
 
       pairs[i].swapTokensForNfts(args);
@@ -66,5 +66,5 @@ contract DittoModule is BaseExchangeModule {
       }
     }
   }
-
+  
 }

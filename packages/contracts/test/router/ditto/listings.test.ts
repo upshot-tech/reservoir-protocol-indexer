@@ -4,7 +4,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { ethers } from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { expect } from "chai";
-
 import { setupDittoListings } from "../helpers/ditto";
 
 /**
@@ -14,7 +13,6 @@ import { setupDittoListings } from "../helpers/ditto";
  */
 describe("DittoModule", () => {
 
-    let tokenId: number;
     let poolAddress: string;
     let adminAddress: string;
     let initialTokenBalance: BigNumber;
@@ -62,28 +60,33 @@ describe("DittoModule", () => {
         await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
     });
 
-    it("Accept single listing", async () => {
+    it("Accept multiple listings", async () => {
 
-        tokenId = 1;
-
-        await nft.ownerOf(tokenId).then((owner: any) => {
+        const tokenId00 = 1;
+        await nft.ownerOf(tokenId00).then((owner: any) => {
+            expect(owner).to.eq(poolAddress);
+        });
+        const tokenId01 = 2;
+        await nft.ownerOf(tokenId01).then((owner: any) => {
             expect(owner).to.eq(poolAddress);
         });
 
         await token.connect(impersonatedSigner).mint(adminAddress, initialTokenBalance);
         await token.balanceOf(adminAddress).then((balance: BigNumber) => {
             expect(balance).to.equal(initialTokenBalance);
-
         });
-        // NOTE: if fees for this pool were set to higher than zero we'd have to approve the pool too
         let approve = await token.connect(impersonatedSigner).approve(dittoModule.address, initialTokenBalance);
         await approve.wait();
+
+        // Fetch the current price
+        let result = await dittoPool.getBuyNftQuote(2, '0x');
+        let inputValue = result[3];
 
         const fillTo: string = adminAddress;
         const refundTo: string = adminAddress;
         const revertIfIncomplete: boolean = false;
         const tokenAddress: string = token.address;
-        const amountPayment: BigNumber = parseEther("2");
+        const amountPayment: BigNumber = inputValue;
 
         const eRC20ListingParams = [
             fillTo,
@@ -101,9 +104,14 @@ describe("DittoModule", () => {
             amountFee
         ];
 
+        const orderParams = [
+            [tokenId00, tokenId01],
+            '0x'
+        ];
+
         const buyWithERC20 = [
             [dittoPool.address],
-            [tokenId],
+            [orderParams],
             eRC20ListingParams,
             [fee]
         ];
@@ -118,7 +126,10 @@ describe("DittoModule", () => {
 
         await router.execute([executions]);
 
-        await nft.ownerOf(tokenId).then((owner: any) => {
+        await nft.ownerOf(tokenId00).then((owner: any) => {
+            expect(owner).to.eq(fillTo);
+        });
+        await nft.ownerOf(tokenId01).then((owner: any) => {
             expect(owner).to.eq(fillTo);
         });
 
