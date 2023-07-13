@@ -79,6 +79,8 @@ describe("DittoModule", () => {
         await nft.connect(alice).setApprovalForAll(dittoPoolFactory.address, true);
         await token.connect(alice).mint(alice.address, parseEther("100"));
         await token.connect(alice).approve(dittoPoolFactory.address, parseEther("100"));
+        let approve = await token.connect(alice).approve(dittoModule.address, parseEther("100"));
+        await approve.wait();
         
         await token.balanceOf(alice.address).then((balance: any) => {
             expect(balance).to.equal(parseEther("100"));
@@ -212,21 +214,55 @@ describe("DittoModule", () => {
         const swapData = ethers.utils.defaultAbiCoder.encode(
             ['tuple(bytes signature,uint256 nonce,address nft,uint96 timestamp,address token,uint96 expiration,uint256 nftId,uint256 price)[]'],
             [[priceData]]
-          );
+        );
 
-        console.log("swapData: ", swapData)
+        //console.log("swapData: ", swapData);
 
-        const args = {
-            nftIds: [tokenId04],
-            maxExpectedTokenInput: parseEther("1.2"),
-            tokenSender: alice.address,
-            nftRecipient: alice.address,
-            swapData: swapData
-        };
-   
-        await dittoPool.connect(alice).swapTokensForNfts(args);
+        const fillTo: string = alice.address;
+        const refundTo: string = alice.address;
+        const revertIfIncomplete: boolean = false;
+        const amountPayment: BigNumber = parseEther("1.2");
+
+        const eRC20ListingParams = [
+            fillTo,
+            refundTo,
+            revertIfIncomplete,
+            tokenAddress,
+            amountPayment
+        ];
+
+        const recipient: string = dittoPool.address;
+        const amountFee: BigNumber = parseEther("0");
+
+        const fee = [
+            recipient,
+            amountFee
+        ];
+
+        const orderParams = [
+            [tokenId04],
+            swapData
+        ];
+
+        const buyWithERC20 = [
+            [dittoPool.address],
+            [orderParams],
+            eRC20ListingParams,
+            [fee]
+        ];
+    
+        let data = dittoModule.interface.encodeFunctionData("buyWithERC20", buyWithERC20);
+
+        const executions = [
+            dittoModule.address,
+            data,
+            0
+        ];
+
+        await router.execute([executions]);
+
         await nft.ownerOf(tokenId04).then((owner: any) => {
-           expect(owner).to.eq(alice.address);
+            expect(owner).to.eq(fillTo);
         });
     
     });
