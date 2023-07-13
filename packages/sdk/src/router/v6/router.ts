@@ -62,7 +62,6 @@ import SudoswapV2ModuleAbi from "./abis/SudoswapV2Module.json";
 import CryptoPunksModuleAbi from "./abis/CryptoPunksModule.json";
 import PaymentProcessorModuleAbi from "./abis/PaymentProcessorModule.json";
 // Exchanges
-import BlurAbi from "../../blur/abis/Exchange.json";
 import SeaportV15Abi from "../../seaport-v1.5/abis/Exchange.json";
 
 type SetupOptions = {
@@ -252,42 +251,6 @@ export class Router {
       options.partial = false;
     }
 
-    if (details.some(({ kind }) => kind === "flow")) {
-      if (options?.relayer) {
-        throw new Error("Relayer not supported for Flow orders");
-      }
-
-      for (const detail of details.filter(({ kind }) => kind === "flow")) {
-        if (detail.fees?.length || options?.globalFees?.length) {
-          throw new Error("Fees not supported for Flow orders");
-        }
-
-        let approval: FTApproval | undefined;
-        if (!isETH(this.chainId, detail.currency)) {
-          approval = {
-            currency: detail.currency,
-            amount: detail.price,
-            owner: taker,
-            operator: Sdk.Flow.Addresses.Exchange[this.chainId],
-            txData: generateNFTApprovalTxData(
-              detail.currency,
-              taker,
-              Sdk.Flow.Addresses.Exchange[this.chainId]
-            ),
-          };
-        }
-        const order = detail.order as Sdk.Flow.Order;
-        const exchange = new Sdk.Flow.Exchange(this.chainId);
-        txs.push({
-          approvals: approval ? [approval] : [],
-          permits: [],
-          txData: exchange.takeMultipleOneOrdersTx(taker, [order]),
-          orderIds: [detail.orderId],
-        });
-        success[detail.orderId] = true;
-      }
-    }
-
     if (details.some(({ kind }) => kind === "manifold")) {
       if (options?.relayer) {
         throw new Error("Relayer not supported for Manifold orders");
@@ -341,7 +304,7 @@ export class Router {
         const detail = details[i];
         if (
           detail.contractKind === "erc721" &&
-          ["blur.io", "opensea.io", "looksrare.org", "x2y2.io"].includes(detail.source!)
+          ["blur.io", "opensea.io"].includes(detail.source!)
         ) {
           blurCompatibleListings.push(detail);
         }
@@ -2449,7 +2412,7 @@ export class Router {
         data: module.interface.encodeFunctionData("batchBuyPunksWithETH", [
           orders.map((order) => ({
             buyer: taker,
-            price: price,
+            price: order.params.price,
             punkIndex: order.params.tokenId,
           })),
           {
@@ -2722,7 +2685,7 @@ export class Router {
           },
           orderIds,
         });
-      } else
+      } else {
         txs.push({
           approvals,
           permits: [],
@@ -2754,6 +2717,7 @@ export class Router {
           },
           orderIds,
         });
+      }
     }
 
     if (!txs.length) {
@@ -2811,38 +2775,113 @@ export class Router {
     }[] = [];
     const success: { [orderId: string]: boolean } = {};
 
-    // TODO: Add Flow router module
-    if (details.some(({ kind }) => kind === "flow")) {
-      for (const detail of details.filter(({ kind }) => kind === "flow")) {
-        if (detail.fees?.length || options?.globalFees?.length) {
-          throw new Error("Fees not supported for Flow orders");
+    // CASE 1
+    // Handle exchanges which don't have a router module implemented by filling directly
+
+    // Nothing here
+
+    // CASE 2
+    // Handle orders which require special handling such as direct filling
+
+    const blurDetails = details.filter((d) => d.source === "blur.io");
+    if (blurDetails.length) {
+      try {
+        // We'll have one transaction per contract
+        const result: {
+          [contract: string]: {
+            from: string;
+            to: string;
+            data: string;
+            value: string;
+            path: { contract: string; tokenId: string }[];
+            errors: { tokenId: string; reason: string }[];
+          };
+        } = await axios
+          .post(`${this.options?.orderFetcherBaseUrl}/api/blur-offer`, {
+            taker,
+            tokens: blurDetails.map((d) => ({
+              contract: d.contract,
+              tokenId: d.tokenId,
+              price: d.price,
+            })),
+            authToken: options?.blurAuth?.accessToken,
+          })
+          .then((response) => response.data.calldata);
+
+        for (const [contract, data] of Object.entries(result)) {
+          const successfulBlurDetails: BidDetails[] = [];
+          for (const { tokenId } of data.path) {
+            const detail = blurDetails.find(
+              (d) => d.contract === contract && d.tokenId === tokenId
+            );
+            if (detail) {
+              successfulBlurDetails.push(detail);
+            }
+          }
+
+          // Expose errors
+          for (const { tokenId, reason } of data.errors) {
+            if (options?.onError) {
+              const detail = blurDetails.find(
+                (d) => d.contract === contract && d.tokenId === tokenId
+              );
+              if (detail) {
+                await options.onError("order-fetcher-blur-offers", new Error(reason), {
+                  orderId: detail.orderId,
+                  additionalInfo: { detail, taker, contract },
+                });
+              }
+            }
+          }
+
+          // If we have at least one Blur detail, we should go ahead with the calldata returned by Blur
+          if (successfulBlurDetails.length) {
+            // Mark the orders handled by Blur as successful
+            const orderIds: string[] = [];
+            for (const d of successfulBlurDetails) {
+              success[d.orderId] = true;
+              orderIds.push(d.orderId);
+            }
+
+            txs.push({
+              approvals: [],
+              txData: {
+                from: data.from,
+                to: data.to,
+                data: data.data + generateSourceBytes(options?.source),
+                value: data.value,
+              },
+              orderIds,
+            });
+          }
+        }
+      } catch (error) {
+        if (options?.onError) {
+          for (const detail of blurDetails) {
+            if (!success[detail.orderId]) {
+              await options.onError("order-fetcher-blur-offers", error, {
+                orderId: detail.orderId,
+                additionalInfo: { detail, taker },
+              });
+            }
+          }
         }
 
-        // Approve Flow's Exchange contract
-        const approval: NFTApproval = {
-          orderIds: [detail.orderId],
-          contract: detail.contract,
-          owner: taker,
-          operator: Sdk.Flow.Addresses.Exchange[this.chainId],
-          txData: generateNFTApprovalTxData(
-            detail.contract,
-            taker,
-            Sdk.Flow.Addresses.Exchange[this.chainId]
-          ),
-        };
-
-        const order = detail.order as Sdk.Flow.Order;
-        const exchange = new Sdk.Flow.Exchange(this.chainId);
-
-        txs.push({
-          approvals: approval ? [approval] : [],
-          txData: exchange.takeMultipleOneOrdersTx(taker, [order]),
-          orderIds: [detail.orderId],
-        });
-
-        success[detail.orderId] = true;
+        if (!options?.partial) {
+          throw new Error(getErrorMessage(error));
+        }
       }
     }
+
+    // Check if we still have any Blur bids for which we didn't properly generate calldata
+    if (blurDetails.find((d) => !success[d.orderId])) {
+      if (!options?.partial) {
+        throw new Error("Could not fetch calldata for all Blur bids");
+      }
+    }
+
+    // CASE 3
+    // Handle exchanges which do have a router module implemented by filling through the router
 
     // Step 1
     // Handle approvals and permits
@@ -2942,6 +2981,11 @@ export class Router {
           break;
         }
 
+        case "payment-processor": {
+          module = this.contracts.paymentProcessorModule;
+          break;
+        }
+
         default: {
           continue;
         }
@@ -2995,92 +3039,6 @@ export class Router {
       const fees = getFees(detail);
 
       switch (detail.kind) {
-        case "blur-bid": {
-          try {
-            const result: {
-              [contract: string]: {
-                from: string;
-                to: string;
-                data: string;
-                value: string;
-                path: { contract: string; tokenId: string }[];
-                errors: { tokenId: string; reason: string }[];
-              };
-            } = await axios
-              .post(`${this.options?.orderFetcherBaseUrl}/api/blur-offer`, {
-                taker,
-                tokens: [
-                  {
-                    contract: detail.contract,
-                    tokenId: detail.tokenId,
-                    price: detail.price,
-                  },
-                ],
-                authToken: options?.blurAuth?.accessToken,
-              })
-              .then((response) => response.data.calldata);
-
-            if (result[detail.contract]?.path[0]?.tokenId !== detail.tokenId) {
-              throw new Error(
-                result[detail.contract]?.errors[0]?.reason ??
-                  "Could not fetch calldata for filling Blur bid"
-              );
-            } else {
-              let calldata = result[detail.contract].data;
-              if (fees.length) {
-                const blurIface = new Interface(BlurAbi);
-
-                // We only fill one token at once, so we can be sure we'll only have to deal with `execute`
-                const decodedCalldata = blurIface.decodeFunctionData("execute", calldata);
-                calldata = blurIface.encodeFunctionData("bulkExecute", [
-                  [
-                    // Original execution
-                    { sell: decodedCalldata.sell, buy: decodedCalldata.buy },
-                    // Fee executions
-                    ...(await Promise.all(
-                      fees.map((f) =>
-                        new Sdk.Blur.Exchange(this.chainId).generateFeeExecutionInputs(
-                          this.provider,
-                          taker,
-                          Sdk.Blur.Types.TradeDirection.BUY,
-                          f.amount,
-                          f.recipient
-                        )
-                      )
-                    )),
-                  ],
-                ]);
-              }
-
-              txs.push({
-                approvals: [],
-                txData: {
-                  from: result[detail.contract].from,
-                  to: result[detail.contract].to,
-                  data: calldata + generateSourceBytes(options?.source),
-                  value: result[detail.contract].value,
-                },
-                orderIds: [detail.orderId],
-              });
-
-              success[detail.orderId] = true;
-            }
-          } catch (error) {
-            if (options?.onError) {
-              await options.onError("order-fetcher-blur-offers", error, {
-                orderId: detail.orderId,
-                additionalInfo: { detail, taker },
-              });
-            }
-
-            if (!options?.partial) {
-              throw new Error(getErrorMessage(error));
-            }
-          }
-
-          break;
-        }
-
         case "looks-rare-v2": {
           const order = detail.order as Sdk.LooksRareV2.Order;
           const module = this.contracts.looksRareV2Module;
@@ -3799,6 +3757,40 @@ export class Router {
 
           success[detail.orderId] = true;
 
+          break;
+        }
+
+        case "payment-processor": {
+          const order = detail.order as Sdk.PaymentProcessor.Order;
+          const module = this.contracts.paymentProcessorModule;
+
+          const takerOrder = order.buildMatching({
+            taker: module.address,
+            takerMasterNonce: "0",
+            tokenId: order.params.collectionLevelOffer ? detail.tokenId : undefined,
+            maxRoyaltyFeeNumerator: detail.extraArgs?.maxRoyaltyFeeNumerator ?? "0",
+          });
+          const matchedOrder = order.getMatchedOrder(takerOrder);
+
+          executionsWithDetails.push({
+            detail,
+            execution: {
+              module: module.address,
+              data: module.interface.encodeFunctionData("acceptOffers", [
+                [matchedOrder],
+                [order.params],
+                {
+                  fillTo: taker,
+                  refundTo: taker,
+                  revertIfIncomplete: Boolean(!options?.partial),
+                },
+                fees,
+              ]),
+              value: 0,
+            },
+          });
+
+          success[detail.orderId] = true;
           break;
         }
       }

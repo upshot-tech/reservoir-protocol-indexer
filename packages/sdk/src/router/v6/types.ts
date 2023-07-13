@@ -135,10 +135,6 @@ export type GenericOrder =
       order: Sdk.Nftx.Order;
     }
   | {
-      kind: "flow";
-      order: Sdk.Flow.Order;
-    }
-  | {
       kind: "superrare";
       order: Sdk.SuperRare.Order;
     }

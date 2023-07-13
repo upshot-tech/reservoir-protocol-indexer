@@ -173,10 +173,6 @@ export const extractEventsBatches = async (
             data: kindToEvents.get("zora") ?? [],
           },
           {
-            kind: "universe",
-            data: kindToEvents.get("universe") ?? [],
-          },
-          {
             kind: "rarible",
             data: kindToEvents.has("rarible")
               ? [
@@ -209,16 +205,6 @@ export const extractEventsBatches = async (
           {
             kind: "superrare",
             data: kindToEvents.get("superrare") ?? [],
-          },
-          {
-            kind: "flow",
-            data: kindToEvents.has("flow")
-              ? [
-                  ...kindToEvents.get("flow")!,
-                  // To properly validate bids, we need some additional events
-                  ...events.filter((e) => e.subKind === "erc20-transfer"),
-                ]
-              : [],
           },
           {
             kind: "zeroex-v2",
@@ -255,6 +241,10 @@ export const extractEventsBatches = async (
           {
             kind: "seadrop",
             data: kindToEvents.get("seadrop") ?? [],
+          },
+          {
+            kind: "blur-v2",
+            data: kindToEvents.get("blur-v2") ?? [],
           },
         ];
 
@@ -502,6 +492,6 @@ export const unsyncEvents = async (block: number, blockHash: string) => {
     es.ftTransfers.removeEvents(block, blockHash),
     es.nftApprovals.removeEvents(block, blockHash),
     es.nftTransfers.removeEvents(block, blockHash),
-    removeUnsyncedEventsActivitiesJob.addToQueue({ blockHash }),
+    removeUnsyncedEventsActivitiesJob.addToQueue(blockHash),
   ]);
 };

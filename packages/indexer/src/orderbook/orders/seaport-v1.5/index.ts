@@ -27,10 +27,13 @@ import { getUSDAndNativePrices } from "@/utils/prices";
 import * as royalties from "@/utils/royalties";
 import { isOpen } from "@/utils/seaport-conduits";
 
-import * as ordersUpdateById from "@/jobs/order-updates/by-id-queue";
 import { topBidsCache } from "@/models/top-bids-caching";
-import * as orderbook from "@/jobs/orderbook/orders-queue";
 import { refreshContractCollectionsMetadataQueueJob } from "@/jobs/collection-updates/refresh-contract-collections-metadata-queue-job";
+import {
+  orderUpdatesByIdJob,
+  OrderUpdatesByIdJobPayload,
+} from "@/jobs/order-updates/order-updates-by-id-job";
+import { orderbookOrdersJob } from "@/jobs/orderbook/orderbook-orders-job";
 
 export type OrderInfo = {
   orderParams: Sdk.SeaportBase.Types.OrderComponents;
@@ -153,7 +156,7 @@ export const save = async (
 
       // Delay the validation of the order if it's start time is very soon in the future
       if (startTime > currentTime) {
-        await orderbook.addToQueue(
+        await orderbookOrdersJob.addToQueue(
           [
             {
               kind: "seaport-v1.5",
@@ -867,7 +870,7 @@ export const save = async (
 
     await idb.none(pgp.helpers.insert(orderValues, columns) + " ON CONFLICT DO NOTHING");
 
-    await ordersUpdateById.addToQueue(
+    await orderUpdatesByIdJob.addToQueue(
       results
         .filter((r) => r.status === "success" && !r.unfillable)
         .map(
@@ -880,7 +883,7 @@ export const save = async (
               },
               ingestMethod,
               ingestDelay,
-            } as ordersUpdateById.OrderInfo)
+            } as OrderUpdatesByIdJobPayload)
         )
     );
   }

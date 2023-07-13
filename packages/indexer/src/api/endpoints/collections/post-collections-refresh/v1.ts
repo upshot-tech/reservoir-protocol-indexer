@@ -15,15 +15,15 @@ import { Tokens } from "@/models/tokens";
 import { OpenseaIndexerApi } from "@/utils/opensea-indexer-api";
 
 import * as openseaOrdersProcessQueue from "@/jobs/opensea-orders/process-queue";
-import * as orderFixes from "@/jobs/order-fixes/fixes";
-import * as blurBidsRefresh from "@/jobs/order-updates/misc/blur-bids-refresh";
-import * as blurListingsRefresh from "@/jobs/order-updates/misc/blur-listings-refresh";
 import { collectionMetadataQueueJob } from "@/jobs/collection-updates/collection-metadata-queue-job";
 import { collectionRefreshCacheJob } from "@/jobs/collections-refresh/collections-refresh-cache-job";
 import {
   metadataIndexFetchJob,
   MetadataIndexFetchJobPayload,
 } from "@/jobs/metadata-index/metadata-fetch-job";
+import { orderFixesJob } from "@/jobs/order-fixes/order-fixes-job";
+import { blurBidsRefreshJob } from "@/jobs/order-updates/misc/blur-bids-refresh-job";
+import { blurListingsRefreshJob } from "@/jobs/order-updates/misc/blur-listings-refresh-job";
 
 const version = "v1";
 
@@ -129,8 +129,8 @@ export const postCollectionsRefreshV1Options: RouteOptions = {
         }
 
         // Refresh Blur bids
-        await blurBidsRefresh.addToQueue(collection.id, true);
-        await blurListingsRefresh.addToQueue(collection.id, true);
+        await blurBidsRefreshJob.addToQueue(collection.id, true);
+        await blurListingsRefreshJob.addToQueue(collection.id, true);
 
         // Refresh listings
         await OpenseaIndexerApi.fastContractSync(collection.contract);
@@ -209,11 +209,13 @@ export const postCollectionsRefreshV1Options: RouteOptions = {
         await collectionRefreshCacheJob.addToQueue({ collection: collection.id });
 
         // Revalidate the contract orders
-        await orderFixes.addToQueue([{ by: "contract", data: { contract: collection.contract } }]);
+        await orderFixesJob.addToQueue([
+          { by: "contract", data: { contract: collection.contract } },
+        ]);
 
         // Refresh Blur bids
         if (collection.id.match(regex.address)) {
-          await blurBidsRefresh.addToQueue(collection.id, true);
+          await blurBidsRefreshJob.addToQueue(collection.id, true);
         }
 
         // Refresh listings

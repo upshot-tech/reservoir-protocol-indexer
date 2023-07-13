@@ -73,7 +73,6 @@ export const getExecuteSellV7Options: RouteOptions = {
                   "seaport-v1.4",
                   "seaport-v1.5",
                   "x2y2",
-                  "universe",
                   "rarible",
                   "sudoswap",
                   "nftx"
@@ -193,8 +192,8 @@ export const getExecuteSellV7Options: RouteOptions = {
           quantity: Joi.number().unsafe(),
           source: Joi.string().allow("", null),
           currency: Joi.string().lowercase().pattern(regex.address),
-          currencySymbol: Joi.string().optional(),
-          currencyDecimals: Joi.number().optional(),
+          currencySymbol: Joi.string().optional().allow(null),
+          currencyDecimals: Joi.number().optional().allow(null),
           // Net price (without fees on top) = price - builtInFees
           quote: Joi.number().unsafe(),
           rawQuote: Joi.string().pattern(regex.number),
@@ -856,13 +855,16 @@ export const getExecuteSellV7Options: RouteOptions = {
         return { recipient, amount };
       });
 
-      const addGlobalFee = async (item: (typeof path)[0], fee: Sdk.RouterV6.Types.Fee) => {
-        // Global fees get split across all orders
-        const adjustedFeeAmount = bn(fee.amount).div(bidDetails.length).toString();
+      const ordersEligibleForGlobalFees = bidDetails
+        .filter((b) => !b.isProtected && b.source !== "blur.io")
+        .map((b) => b.orderId);
 
-        const itemGrossPrice = bn(item.rawQuote)
-          .add(item.builtInFees.map((f) => bn(f.rawAmount)).reduce((a, b) => a.add(b), bn(0)))
-          .add(item.feesOnTop.map((f) => bn(f.rawAmount)).reduce((a, b) => a.add(b), bn(0)));
+      const addGlobalFee = async (item: (typeof path)[0], fee: Sdk.RouterV6.Types.Fee) => {
+        // The fees should be relative to a single quantity
+        fee.amount = bn(fee.amount).div(item.quantity).toString();
+
+        // Global fees get split across all eligible orders
+        const adjustedFeeAmount = bn(fee.amount).div(ordersEligibleForGlobalFees.length).toString();
 
         const amount = formatPrice(
           adjustedFeeAmount,
@@ -873,7 +875,7 @@ export const getExecuteSellV7Options: RouteOptions = {
 
         item.feesOnTop.push({
           recipient: fee.recipient,
-          bps: bn(rawAmount).mul(10000).div(itemGrossPrice).toNumber(),
+          bps: bn(fee.amount).mul(10000).div(item.rawQuote).toNumber(),
           amount,
           rawAmount,
         });
@@ -883,7 +885,7 @@ export const getExecuteSellV7Options: RouteOptions = {
       };
 
       for (const item of path) {
-        if (globalFees.length) {
+        if (globalFees.length && ordersEligibleForGlobalFees.includes(item.orderId)) {
           for (const f of globalFees) {
             await addGlobalFee(item, f);
           }
@@ -953,7 +955,7 @@ export const getExecuteSellV7Options: RouteOptions = {
         }
 
         for (const [contract, orderIds] of Object.entries(contractsAndOrderIds)) {
-          const operator = Sdk.Blur.Addresses.ExecutionDelegate[config.chainId];
+          const operator = Sdk.BlurV2.Addresses.Delegate[config.chainId];
           const isApproved = await commonHelpers.getNftApproval(contract, payload.taker, operator);
           if (!isApproved) {
             missingApprovals.push({

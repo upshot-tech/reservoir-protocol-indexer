@@ -53,10 +53,8 @@ export const getExecuteBuyV6Options: RouteOptions = {
               "seaport-v1.4",
               "seaport-v1.5",
               "x2y2",
-              "universe",
               "rarible",
               "sudoswap",
-              "flow",
               "nftx"
             )
             .required(),
@@ -876,7 +874,7 @@ export const getExecuteBuyV6Options: RouteOptions = {
           } else if (listings.every((d) => d.kind === "rarible")) {
             conduit = Sdk.Rarible.Addresses.Exchange[config.chainId];
           } else {
-            throw new Error("Only Seaport, Universe and Rarible ERC20 listings are supported");
+            throw new Error("Only Seaport and Rarible ERC20 listings are supported");
           }
 
           const allowance = await erc20.getAllowance(txSender, conduit);
