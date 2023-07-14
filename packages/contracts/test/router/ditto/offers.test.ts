@@ -56,6 +56,9 @@ describe("DittoModule", () => {
             factory.deploy(deployer.address, router.address)
         );
 
+        const ownerAddress: string = await dittoPoolFactory.owner();
+        const ownerSigner: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress);
+        await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
     });
 
     it("Sell an NFT into a pool", async () => {
@@ -137,29 +140,54 @@ describe("DittoModule", () => {
         );
 
         let lpId = await dittoPoolLin.getAllPoolLpIds();
-        console.log("lpId: " + lpId);
 
         let result = await dittoPoolLin.getSellNftQuote(1, '0x');
         let outputValue = result[3];
-        console.log("inputValue: " + outputValue);
 
-        let args = {
+        await nft.connect(bob).setApprovalForAll(dittoModule.address, true);
+
+        const recipient: string = dittoPoolLin.address;
+        const amountFee: BigNumber = parseEther("0");
+
+        const fee = [
+            recipient,
+            amountFee
+        ];
+
+        const orderParams = {
             nftIds: [tokenId00],
-            lpIds: [lpId.toString()],
-            minExpectedTokenOutput: outputValue,
-            nftSender: bob.address,
-            tokenRecipient: bob.address,
-            permitterData: '0x',
             swapData: '0x'
         };
+    
+        const offerParams = {
+            fillTo: bob.address,
+            refundTo: bob.address,
+            revertIfIncomplete: false
+        };
 
-        await nft.connect(bob).setApprovalForAll(dittoPoolLin.address, true);
-        await dittoPoolLin.connect(bob).swapNftsForTokens(args);
+        const sell = [
+            dittoPoolLin.address,
+            orderParams,
+            [lpId.toString()],
+            '0x',
+            outputValue,
+            offerParams,
+            [fee]
+        ];
 
+        let data = dittoModule.interface.encodeFunctionData("sell", sell);
         
+        const executions = [
+            dittoModule.address,
+            data,
+            0
+        ];
 
+        await router.execute([executions]);
 
-
+        await nft.ownerOf(tokenId00).then((owner: any) => {
+            expect(owner).to.eq(dittoPoolLin.address);
+        });
     });
 
 });

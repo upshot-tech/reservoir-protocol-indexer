@@ -106,9 +106,17 @@ contract ReservoirV6_0_1 is ReentrancyGuard {
       revert UnsuccessfulExecution();
     }
 
-    (bool success, ) = module.call{value: executionInfo.value}(executionInfo.data);
+    (bool success, bytes memory result) = module.call{value: executionInfo.value}(executionInfo.data);
+    // if (!success) {
+    //   revert UnsuccessfulExecution();
+    // }
     if (!success) {
-      revert UnsuccessfulExecution();
+        // Next 5 lines from https://ethereum.stackexchange.com/a/83577
+        if (result.length < 68) revert();
+        assembly {
+            result := add(result, 0x04)
+        }
+        revert(abi.decode(result, (string)));
     }
   }
 
