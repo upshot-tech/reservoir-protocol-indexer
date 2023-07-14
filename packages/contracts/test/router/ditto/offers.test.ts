@@ -145,7 +145,7 @@ describe("DittoModule", () => {
 
         let args = {
             nftIds: [tokenId00],
-            lpIds: [2],
+            lpIds: [lpId.toString()],
             minExpectedTokenOutput: outputValue,
             nftSender: bob.address,
             tokenRecipient: bob.address,
@@ -155,6 +155,8 @@ describe("DittoModule", () => {
 
         await nft.connect(bob).setApprovalForAll(dittoPoolLin.address, true);
         await dittoPoolLin.connect(bob).swapNftsForTokens(args);
+
+        
 
 
 
