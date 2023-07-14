@@ -5,11 +5,12 @@ import { ethers } from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { expect } from "chai";
 import { setupDittoListings } from "../helpers/ditto";
+import abiDittoPool from "../../../../sdk/src/ditto/abis/Pool.json";
 
 /**
  * run with the following command:
  * 
- * BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/listings.test.ts
+ * BLOCK_NUMBER="9268037" npx hardhat test test/router/ditto/offers.test.ts
  */
 describe("DittoModule", () => {
 
@@ -45,7 +46,7 @@ describe("DittoModule", () => {
 
         [deployer, alice, bob] = await ethers.getSigners();
 
-        initialTokenBalance = parseEther("1000");
+        initialTokenBalance = parseEther("100");
 
         router = await ethers.getContractFactory("ReservoirV6_0_1", deployer).then((factory) => 
             factory.deploy()
@@ -55,83 +56,107 @@ describe("DittoModule", () => {
             factory.deploy(deployer.address, router.address)
         );
 
-        const ownerAddress: string = await dittoPoolFactory.owner();
-        const ownerSigner: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress);
-        await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
     });
 
-    it("Accept multiple listings", async () => {
+    it("Sell an NFT into a pool", async () => {
 
-        const tokenId00 = 1;
+        const tokenId00 = 13;
+        await nft.connect(bob).mint(bob.address, tokenId00);
         await nft.ownerOf(tokenId00).then((owner: any) => {
-            expect(owner).to.eq(poolAddress);
-        });
-        const tokenId01 = 2;
-        await nft.ownerOf(tokenId01).then((owner: any) => {
-            expect(owner).to.eq(poolAddress);
+            expect(owner).to.eq(bob.address);
         });
 
-        await token.connect(impersonatedSigner).mint(adminAddress, initialTokenBalance);
-        await token.balanceOf(adminAddress).then((balance: BigNumber) => {
+        await token.connect(alice).mint(alice.address, initialTokenBalance);
+        await token.balanceOf(alice.address).then((balance: any) => {
             expect(balance).to.equal(initialTokenBalance);
         });
-        let approve = await token.connect(impersonatedSigner).approve(dittoModule.address, initialTokenBalance);
-        await approve.wait();
+        await token.connect(alice).approve(dittoPoolFactory.address, initialTokenBalance);
+        await token.connect(alice).approve(dittoModule.address, initialTokenBalance);
+        
+        const isPrivatePool: any = false;
+        const templateIndex: any = 3; //DittoPoolLin
+        const tokenAddress: any = token.address;
+        const nftAddress: any = nft.address;
+        const feeLp: any = 0;
+        const ownerAddress: any = alice.address;
+        const feeAdmin: any = 0;
+        const delta: any = parseEther("0.1");
+        const basePrice: any = parseEther("1");
+        const nftIdList: any[] = [];
+        const templateInitData: any = new Uint8Array([]);
+        const referrer: any = new Uint8Array([]);
 
-        // Fetch the current price
-        let result = await dittoPool.getBuyNftQuote(2, '0x');
-        let inputValue = result[3];
+        const poolTemplate: any = {
+            isPrivatePool: isPrivatePool,
+            templateIndex: templateIndex,
+            token: tokenAddress,
+            nft: nftAddress,
+            feeLp: feeLp,
+            owner: ownerAddress,
+            feeAdmin: feeAdmin,
+            delta: delta,
+            basePrice: basePrice,
+            nftIdList: nftIdList,
+            initialTokenBalance: initialTokenBalance,
+            templateInitData: templateInitData,
+            referrer: referrer
+        };
 
-        const fillTo: string = adminAddress;
-        const refundTo: string = adminAddress;
-        const revertIfIncomplete: boolean = false;
-        const tokenAddress: string = token.address;
-        const amountPayment: BigNumber = inputValue;
+        const mngrTemplateIndex = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+        const mngrInitData = new Uint8Array([]);
 
-        const eRC20ListingParams = [
-            fillTo,
-            refundTo,
-            revertIfIncomplete,
-            tokenAddress,
-            amountPayment
-        ];
+        const poolManagerTemplate: any = {
+            templateIndex: mngrTemplateIndex,
+            templateInitData: mngrInitData
+        };
 
-        const recipient: string = dittoPool.address;
-        const amountFee: BigNumber = parseEther("0");
+        const permitterTemplateIndex = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+        const permitterInitData = new Uint8Array([]);
+        const liquidityDepositPermissionData = new Uint8Array([]);
 
-        const fee = [
-            recipient,
-            amountFee
-        ];
+        const permitterTemplate = {
+            templateIndex: permitterTemplateIndex,
+            templateInitData: permitterInitData,
+            liquidityDepositPermissionData: liquidityDepositPermissionData
+        };
 
-        const orderParams = [
-            [tokenId00, tokenId01],
-            '0x'
-        ];
+        const txn = await dittoPoolFactory.connect(deployer).createDittoPool(
+            poolTemplate,
+            poolManagerTemplate,
+            permitterTemplate
+        );
+        let output = await txn.wait();  
 
-        const buyWithERC20 = [
-            [dittoPool.address],
-            [orderParams],
-            eRC20ListingParams,
-            [fee]
-        ];
+        const event00: any = output.events.find((event: { event: string; }) => event.event === 'DittoPoolFactoryDittoPoolCreated');
+        const dpAddress = event00.args.dittoPool;
 
-        let data = dittoModule.interface.encodeFunctionData("buyWithERC20", buyWithERC20);
+        const dittoPoolLin: Contract = new Contract(
+            dpAddress,
+            abiDittoPool,
+            ethers.provider 
+        );
 
-        const executions = [
-            dittoModule.address,
-            data,
-            0
-        ];
+        let lpId = await dittoPoolLin.getAllPoolLpIds();
+        console.log("lpId: " + lpId);
 
-        await router.execute([executions]);
+        let result = await dittoPoolLin.getSellNftQuote(1, '0x');
+        let outputValue = result[3];
+        console.log("inputValue: " + outputValue);
 
-        await nft.ownerOf(tokenId00).then((owner: any) => {
-            expect(owner).to.eq(fillTo);
-        });
-        await nft.ownerOf(tokenId01).then((owner: any) => {
-            expect(owner).to.eq(fillTo);
-        });
+        let args = {
+            nftIds: [tokenId00],
+            lpIds: [2],
+            minExpectedTokenOutput: outputValue,
+            nftSender: bob.address,
+            tokenRecipient: bob.address,
+            permitterData: '0x',
+            swapData: '0x'
+        };
+
+        await nft.connect(bob).setApprovalForAll(dittoPoolLin.address, true);
+        await dittoPoolLin.connect(bob).swapNftsForTokens(args);
+
+
 
     });
 
