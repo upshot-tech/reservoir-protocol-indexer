@@ -52,16 +52,15 @@ export class RabbitMq {
 
   private static rabbitMqPublisherConnection: AmqpConnectionManager;
 
-  private static maxPublisherChannelsCount = 12;
+  private static maxPublisherChannelsCount = 10;
   private static rabbitMqPublisherChannels: ChannelWrapper[] = [];
 
   public static async connect() {
-    RabbitMq.rabbitMqPublisherConnection = await amqplibConnectionManager.connect(
-      config.rabbitMqUrl
-    );
+    RabbitMq.rabbitMqPublisherConnection = amqplibConnectionManager.connect(config.rabbitMqUrl);
 
     for (let index = 0; index < RabbitMq.maxPublisherChannelsCount; ++index) {
-      const channel = await this.rabbitMqPublisherConnection.createChannel();
+      const channel = this.rabbitMqPublisherConnection.createChannel();
+      await channel.waitForConnect();
       RabbitMq.rabbitMqPublisherChannels[index] = channel;
 
       channel.once("error", (error) => {
@@ -114,10 +113,10 @@ export class RabbitMq {
             },
             (error) => {
               if (!_.isNull(error)) {
-                reject(error);
+                return reject(error);
               }
 
-              resolve();
+              return resolve();
             }
           );
         } else {
@@ -131,10 +130,10 @@ export class RabbitMq {
             },
             (error) => {
               if (!_.isNull(error)) {
-                reject(error);
+                return reject(error);
               }
 
-              resolve();
+              return resolve();
             }
           );
         }
@@ -142,7 +141,12 @@ export class RabbitMq {
     } catch (error) {
       logger.error(
         `rabbit-publish-error`,
-        `failed to publish to ${queueName} error ${error} content=${JSON.stringify(content)}`
+        JSON.stringify({
+          message: `failed to publish to ${queueName} error ${error} content=${JSON.stringify(
+            content
+          )}`,
+          queueName: queueName.substring(_.indexOf(queueName, ".") + 1), // Remove chain name
+        })
       );
     }
   }
@@ -155,7 +159,7 @@ export class RabbitMq {
       priority?: number;
     }[]
   ) {
-    const limit = pLimit(40);
+    const limit = pLimit(50);
     await Promise.all(
       messages.map((message) =>
         limit(() => {

@@ -43,6 +43,7 @@ import * as LooksRareV2 from "./looks-rare-v2";
 import * as Dittoswap from "./dittoswap";
 import * as Blend from "./blend";
 import * as SudoswapV2 from "./sudoswap-v2";
+import * as CaviarV1 from "./caviar-v1";
 import * as PaymentProcessor from "./payment-processor";
 import * as Seadrop from "./seadrop";
 import * as BlurV2 from "./blur-v2";
@@ -116,6 +117,7 @@ export {
   Dittoswap,
   Blend,
   SudoswapV2,
+  CaviarV1,
   PaymentProcessor,
   Seadrop,
   BlurV2,

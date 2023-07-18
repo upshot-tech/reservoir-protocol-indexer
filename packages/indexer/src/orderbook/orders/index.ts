@@ -22,6 +22,7 @@ export * as looksRareV2 from "@/orderbook/orders/looks-rare-v2";
 export * as collectionxyz from "@/orderbook/orders/collectionxyz";
 export * as sudoswapV2 from "@/orderbook/orders/sudoswap-v2";
 export * as dittoswap from "@/orderbook/orders/dittoswap";
+export * as caviarV1 from "@/orderbook/orders/caviar-v1";
 export * as paymentProcessor from "@/orderbook/orders/payment-processor";
 
 
@@ -31,6 +32,7 @@ import * as Sdk from "@reservoir0x/sdk";
 import * as SdkTypesV5 from "@reservoir0x/sdk/dist/router/v5/types";
 import * as SdkTypesV6 from "@reservoir0x/sdk/dist/router/v6/types";
 
+import { inject } from "@/api/index";
 import { idb } from "@/common/db";
 import { config } from "@/config/index";
 import { Sources } from "@/models/sources";
@@ -80,6 +82,7 @@ export type OrderKind =
   | "collectionxyz"
   | "sudoswap-v2"
   | "dittoswap"
+  | "caviar-v1"
   | "payment-processor"
   | "blur-v2";
 
@@ -162,8 +165,8 @@ export const getOrderSourceByOrderKind = async (
         return sources.getOrInsert("sudoswap.xyz");
       case "dittoswap":
           return sources.getOrInsert("dittohq.xyz");
-      case "universe":
-        return sources.getOrInsert("universe.xyz");
+      case "caviar-v1":
+        return sources.getOrInsert("caviar.sh");
       case "nftx":
         return sources.getOrInsert("nftx.io");
       case "blur":
@@ -417,6 +420,14 @@ export const generateListingDetailsV6 = (
         kind: "dittoswap",
         ...common,
         order: new Sdk.DittoSwap.Order(config.chainId, order.rawData),
+      }
+    }
+    
+    case "caviar-v1": {
+      return {
+        kind: "caviar-v1",
+        ...common,
+        order: new Sdk.CaviarV1.Order(config.chainId, order.rawData),
       };
     }
 
@@ -748,6 +759,29 @@ export const generateBidDetailsV6 = async (
       };
     }
     
+    case "caviar-v1": {
+      const sdkOrder = new Sdk.CaviarV1.Order(config.chainId, order.rawData);
+
+      const response = await inject({
+        method: "GET",
+        url: `/oracle/tokens/status/v2?tokens=${token.contract}:${token.tokenId}`,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const { messages } = JSON.parse(response.payload);
+
+      return {
+        kind: "caviar-v1",
+        ...common,
+        order: sdkOrder,
+        extraArgs: {
+          stolenProof: messages[0].message,
+        },
+      };
+    }
+
     case "payment-processor": {
       const sdkOrder = new Sdk.PaymentProcessor.Order(config.chainId, order.rawData);
       return {
@@ -983,7 +1017,6 @@ export const checkBlacklistAndFallback = async (
     ]);
     if (blocked) {
       params.orderKind = "seaport-v1.5";
-      params.orderbook = "reservoir";
     }
   }
 
