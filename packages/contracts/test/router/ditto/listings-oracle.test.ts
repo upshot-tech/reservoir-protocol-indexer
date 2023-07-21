@@ -4,9 +4,11 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { ethers } from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { expect } from "chai";
+import abiErc20 from "../../../../sdk/src/ditto/abis/Erc20.json";
+import abiErc721 from "../../../../sdk/src/ditto/abis/Erc721.json";
 import abiDittoAppraisal from "../../../../sdk/src/ditto/abis/Appraisal.json";
+import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/PoolFactory.json";
 import abiUpshotOracle from "../../../../sdk/src/ditto/abis/Oracle.json";
-import { setupDittoListings } from "../helpers/ditto";
 
 import * as Sdk from "../../../../sdk/src";
 
@@ -20,10 +22,6 @@ describe("DittoModule", () => {
     let initialTokenBalance: any;
     let deployer: SignerWithAddress;
     let alice: SignerWithAddress;
-
-    let nft: Contract;
-    let token: Contract;
-    let dittoPoolFactory: Contract;
   
     let router: Contract;
     let dittoModule: Contract;
@@ -31,12 +29,6 @@ describe("DittoModule", () => {
     beforeEach(async () => {
 
         [deployer] = await ethers.getSigners();
-
-        setupDittoListings().then((contracts) => {
-            nft = contracts.nft;
-            token = contracts.token;
-            dittoPoolFactory = contracts.dittoPoolFactory;
-        });
 
         let adminAddress = "0x00000000000000000000000000000000DeaDBeef";
         alice = await ethers.getImpersonatedSigner(adminAddress); 
@@ -50,15 +42,34 @@ describe("DittoModule", () => {
         dittoModule = await ethers.getContractFactory("DittoModule", deployer).then((factory) =>
             factory.deploy(deployer.address, router.address)
         );
-
-        const ownerAddress: string = await dittoPoolFactory.owner();
-        const ownerSigner: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress);
-        await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
     });
 
-    it("Upshot oracle test", async () => {
+    it("Accept multiple listings", async () => {
 
         const tokenId04 = 4;
+
+        const nft: Contract = new Contract(
+            Sdk.Ditto.Addresses.Test721[5],
+            abiErc721,
+            ethers.provider 
+        );
+    
+        const token: Contract = new Contract(
+            Sdk.Ditto.Addresses.Test20[5],
+            abiErc20,
+            ethers.provider 
+        );
+
+        const dittoPoolFactory: Contract = new Contract(
+            Sdk.Ditto.Addresses.PoolFactory[5], 
+            abiDittoPoolFactory,
+            ethers.provider 
+        );
+
+        const ownerAddress00: string = await dittoPoolFactory.owner();
+        const ownerSigner: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress00);
+        await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
+
 
         await nft.connect(alice).mint(alice.address, tokenId04);
         await nft.connect(alice).setApprovalForAll(dittoPoolFactory.address, true);

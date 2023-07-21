@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface IDittoPool {
     
@@ -31,26 +32,6 @@ interface IDittoPool {
         bytes swapData;
     }
 
-    /**
-     * @param nftIds The list of IDs of the NFTs to sell to the pair
-     * @param lpIds The list of IDs of the LP positions sell the NFTs to
-     * @param minExpectedTokenOutput The minimum acceptable token count received by the sender. 
-     *   If the actual amount is less than this value, the transaction will be reverted.
-     * @param nftSender NFT sender. Only used if msg.sender is an approved IDittoRouter, else msg.sender is used.
-     * @param tokenRecipient The recipient of the ERC20 proceeds.
-     * @param permitterData Data to profe that the NFT Token IDs are permitted to be sold to this pool if a permitter is set.
-     * @param swapData Extra data to pass to the curve
-     */
-    struct SwapNftsForTokensArgs {
-        uint256[] nftIds;
-        uint256[] lpIds;
-        uint256 minExpectedTokenOutput;
-        address nftSender;
-        address tokenRecipient;
-        bytes permitterData;
-        bytes swapData;
-    }
-
     struct NftCostData {
         bool specificNftId;
         uint256 nftId;
@@ -64,11 +45,34 @@ interface IDittoPool {
         uint256 protocol;
     }
 
-    function token() external returns (IERC20);
+    function getLpNft() external view returns (address);
 
-    function swapNftsForTokens(
-        SwapNftsForTokensArgs calldata args_
-    ) external returns (uint256 outputAmount);
+    function nft() external returns (IERC721);
+
+    function token() external returns (address);
+
+    function test() external view returns (string memory);
+
+    /**
+     * @notice Read-only function used to query the bonding curve for buy pricing info.
+     * @param numNfts The number of NFTs to buy out of the pair
+     * @param swapData_ Extra data to pass to the curve
+     * @return error any errors that would be throw if trying to buy that many NFTs
+     * @return newBasePrice the new base price after the trade
+     * @return newDelta the new delta after the trade
+     * @return inputAmount the amount of token to send to the pool to purchase that many NFTs
+     * @return nftCostData the cost data for each NFT purchased
+     */
+    function getBuyNftQuote(uint256 numNfts, bytes calldata swapData_)
+        external
+        view
+        returns (
+            uint8 error,
+            uint256 newBasePrice,
+            uint256 newDelta,
+            uint256 inputAmount,
+            NftCostData[] memory nftCostData
+        );
 
     function swapTokensForNfts(
         SwapTokensForNftsArgs calldata args_
