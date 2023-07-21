@@ -1,7 +1,6 @@
 import { idb } from "@/common/db";
 import { fromBuffer, toBuffer } from "@/common/utils";
 
-
 export type DittoswapPool = {
   address: string;
   nft: string;
@@ -53,7 +52,7 @@ export const saveDittoswapPool = async (dittoswapPool: DittoswapPool) => {
       template: toBuffer(dittoswapPool.template),
       fee: dittoswapPool.fee,
       delta: dittoswapPool.delta,
-      adminFeeRecipient: toBuffer(dittoswapPool.adminFeeRecipient)
+      adminFeeRecipient: toBuffer(dittoswapPool.adminFeeRecipient),
     }
   );
 
@@ -90,6 +89,6 @@ export const getDittoswapPool = async (address: string): Promise<DittoswapPool> 
     template: fromBuffer(result.template),
     fee: result.fee,
     delta: result.delta,
-    adminFeeRecipient: fromBuffer(result.nft)
+    adminFeeRecipient: fromBuffer(result.nft),
   };
 };

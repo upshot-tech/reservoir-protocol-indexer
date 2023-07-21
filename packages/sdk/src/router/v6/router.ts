@@ -138,7 +138,7 @@ export class Router {
       ),
       dittoswapModule: new Contract(
         Addresses.DittoSwapModule[chainId] ?? AddressZero,
-        DittoswapModuleAbi,
+        DittoswapModuleAbi
       ),
       sudoswapV2Module: new Contract(
         Addresses.SudoswapV2Module[chainId] ?? AddressZero,
@@ -768,7 +768,7 @@ export class Router {
         case "sudoswap":
           detailsRef = sudoswapDetails;
           break;
-        
+
         case "dittoswap":
           detailsRef = dittoswapDetails;
           break;
@@ -1726,14 +1726,12 @@ export class Router {
     // Handle Dittoswap listings
     if (dittoswapDetails.length) {
       const orders = dittoswapDetails.map((d) => d.order as Sdk.Dittoswap.Order);
-      const router = new Sdk.Dittoswap.Router(this.chainId)
+      const router = new Sdk.Dittoswap.Router(this.chainId);
       const module = this.contracts.dittoswapModule;
 
-      const fees = getFees(dittoswapDetails)
+      const fees = getFees(dittoswapDetails);
       const price = orders
-        .map((order) =>
-          bn(order.params.amount)
-        )
+        .map((order) => bn(order.params.expectedTokenAmount))
         .reduce((a, b) => a.add(b), bn(0));
       const feeAmount = fees.map(({ amount }) => bn(amount)).reduce((a, b) => a.add(b), bn(0));
       const totalPrice = price.add(feeAmount);
@@ -3071,7 +3069,7 @@ export class Router {
           module = this.contracts.dittoswapModule;
           break;
         }
-        
+
         case "sudoswap-v2": {
           module = this.contracts.sudoswapV2Module;
           break;
@@ -3587,7 +3585,7 @@ export class Router {
 
           break;
         }
-    
+
         case "dittoswap": {
           const order = detail.order as Sdk.Dittoswap.Order;
           const module = this.contracts.dittoswapModule;
@@ -3599,7 +3597,7 @@ export class Router {
               module: module.address,
               data: router.fillSellOrderTx(taker, order).data,
               value: 0,
-            }
+            },
           });
 
           success[detail.orderId] = true;
