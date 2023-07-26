@@ -5,51 +5,19 @@ import { EventData } from "@/events-sync/data";
  * Factory events
  */
 
-export const adminSetProtocolFee: EventData = {
+export const poolCreated: EventData = {
   kind: "dittoswap",
-  subKind: "dittoswap-admin-set-protocol-fee",
-  topic: "",
+  subKind: "dittoswap-pool-created",
+  topic: "0x47c73863168b3080e0e387c11995820f90746ddb0d566efa696c327137a601c2",
   numTopics: 1,
   abi: new Interface([
-    `event DittoPoolFactoryAdminSetProtocolFeeRecipient(
-      address protocolFeeRecipient
-    )`,
+    `event DittoPoolFactoryDittoPoolCreated((bool,uint256,address,address,uint96,address,uint96,uint128,uint128,uint256[],uint256,bytes,bytes),address,(uint256,bytes),address,(uint256,bytes,bytes),address,bool,bytes)`,
   ]),
 };
-
-
-export const adminSetProtocolFeeMultiplier: EventData = {
-  kind: "dittoswap",
-  subKind: "dittoswap-admin-set-protocol-fee-multiplier",
-  topic: "",
-  numTopics: 1,
-  abi: new Interface([
-    `event DittoPoolFactoryAdminSetProtocolFeeMultiplier(
-      uint96 protocolFeeMultiplier
-    )`,
-  ]),
-};
-
 
 /**
  * Pool events
  */
-
-export const poolinitialized: EventData = {
-  kind: "dittoswap",
-  subKind: "dittoswap-pool-initialized",
-  topic: "0x1a09ea6cde50172776f5eec38a7369da704a85b3cfad138d4bbf52a036136f72",
-  numTopics: 1,
-  abi: new Interface([
-    `event DittoPoolMainPoolInitialized(
-      address owner,
-      uint128 delta,
-      uint128 spotPrice,
-      uint256 fee
-    );`,
-  ]),
-};
-
 
 export const changeBasePrice: EventData = {
   kind: "dittoswap",
@@ -87,7 +55,6 @@ export const changeAdminFeeRecipient: EventData = {
   ]),
 };
 
-
 export const changeAdminChangedAdminFee: EventData = {
   kind: "dittoswap",
   subKind: "dittoswap-change-admin-fee",
@@ -99,7 +66,6 @@ export const changeAdminChangedAdminFee: EventData = {
     );`,
   ]),
 };
-
 
 export const changeAdminChangedLpFee: EventData = {
   kind: "dittoswap",
@@ -113,45 +79,25 @@ export const changeAdminChangedLpFee: EventData = {
   ]),
 };
 
-
 export const tradeSwappedTokensForNft: EventData = {
   kind: "dittoswap",
   subKind: "dittoswap-trade-swapped-tokens-for-nft",
-  topic: "",
+  topic: "0xaf55c27589967940201b48853c5edb0b958104a4e136c7305c9ad5aaee4b1d6d",
   numTopics: 1,
   abi: new Interface([
-    `event DittoPoolTradeSwappedTokensForNft(
-      uint256 sellerLpId,
-      uint256 nftId,
-      uint256 price,
-      (
-        uint256 lp,
-        uint256 admin,
-        uint256 protocol
-      ) fee
-    );`,
+    `event DittoPoolTradeSwappedTokensForNft(uint256,uint256,uint256,(uint256,uint256,uint256))`,
   ]),
 };
 
 export const tradeSwappedNftForTokens: EventData = {
   kind: "dittoswap",
   subKind: "dittoswap-trade-swapped-nft-for-tokens",
-  topic: "",
+  topic: "0xd29a2b5a8296788ca359d8fc626bea426929592b0510cb549cd959f5943bb8d6",
   numTopics: 1,
   abi: new Interface([
-    `event DittoPoolTradeSwappedNftForTokens(
-      uint256 buyerLpId,
-      uint256 nftId,
-      uint256 price,
-      (
-        uint256 lp,
-        uint256 admin,
-        uint256 protocol
-      ) fee
-    );`,
+    `event DittoPoolTradeSwappedNftForTokens(uint256,uint256,uint256,(uint256,uint256,uint256))`,
   ]),
 };
-
 
 export const liquidityAdded: EventData = {
   kind: "dittoswap",
@@ -168,7 +114,6 @@ export const liquidityAdded: EventData = {
     );`,
   ]),
 };
-
 
 export const liquidityRemoved: EventData = {
   kind: "dittoswap",

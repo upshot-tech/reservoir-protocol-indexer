@@ -90,7 +90,6 @@ export type EventKind =
   | "blur-v2"
   | "dittoswap";
 
-
 // Event sub-kind in each of the above protocol/standard
 export type EventSubKind =
   | "erc721-transfer"
@@ -163,6 +162,7 @@ export type EventSubKind =
   | "zora-ask-cancelled"
   | "zora-auction-ended"
   | "zora-sales-config-changed"
+  | "zora-updated-token"
   | "nouns-auction-settled"
   | "cryptopunks-punk-offered"
   | "cryptopunks-punk-no-longer-for-sale"
@@ -260,9 +260,7 @@ export type EventSubKind =
   | "sudoswap-v2-delta-update"
   | "sudoswap-v2-new-erc721-pair"
   | "sudoswap-v2-new-erc1155-pair"
-  | "dittoswap-admin-set-protocol-fee"
-  | "dittoswap-admin-set-protocol-fee-multiplier"
-  | "dittoswap-pool-initialized"
+  | "dittoswap-pool-created"
   | "dittoswap-change-base-price"
   | "dittoswap-change-delta"
   | "dittoswap-change-admin-fee-recipient"
@@ -272,6 +270,7 @@ export type EventSubKind =
   | "dittoswap-trade-swapped-nft-for-tokens"
   | "dittoswap-liquidity-added"
   | "dittoswap-liquidity-removed"
+  | "dittoswap-dittoswap-pool-created"
   | "caviar-v1-create"
   | "caviar-v1-add"
   | "caviar-v1-remove"
@@ -291,7 +290,6 @@ export type EventSubKind =
   | "blur-v2-execution-721-packed"
   | "blur-v2-execution-721-taker-fee-packed"
   | "blur-v2-execution-721-maker-fee-packed";
-
 
 export type EventData = {
   kind: EventKind;
@@ -378,6 +376,7 @@ const allEventData = [
   zora.askPriceUpdated,
   zora.auctionEnded,
   zora.salesConfigChanged,
+  zora.updatedToken,
   nouns.auctionSettled,
   cryptoPunks.punkOffered,
   cryptoPunks.punkNoLongerForSale,
@@ -468,9 +467,7 @@ const allEventData = [
   sudoswapV2.newERC721Pair,
   sudoswapV2.newERC1155Pair,
   treasure.bidAccepted,
-  dittoswap.adminSetProtocolFee,
-  dittoswap.adminSetProtocolFeeMultiplier,
-  dittoswap.poolinitialized,
+  dittoswap.poolCreated,
   dittoswap.changeBasePrice,
   dittoswap.changeDelta,
   dittoswap.changeAdminFeeRecipient,

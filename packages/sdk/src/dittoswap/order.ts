@@ -1,5 +1,5 @@
 import * as Types from "./types";
-import { lc, s, n } from "../utils";
+import { lc, s } from "../utils";
 
 export class Order {
   public chainId: number;
@@ -22,19 +22,14 @@ const normalize = (order: Types.OrderParams): Types.OrderParams => {
   // - convert strings to numbers where needed
   // - lowercase all strings
   return {
-    swapList: order.swapList.map((swap) => { 
-      return { 
-        pool: lc(s(swap.pool)),
-        nftIds: swap.nftIds.map(s), 
-        swapData: s(swap.swapData),
-        lpIds: swap.lpIds ? swap.lpIds.map(s): undefined,
-        permitterData: swap.permitterData ? s(swap.permitterData) : undefined
-      }}),
-    amount: s(order.amount),
+    pool: s(order.pool),
+    nftIds: order.nftIds ? order.nftIds.map(s) : undefined,
+    lpIds: order.lpIds ? order.lpIds.map(s) : undefined,
+    expectedTokenAmount: s(order.expectedTokenAmount),
     recipient: lc(s(order.recipient)),
-    deadline: n(order.deadline),
+    swapData: s(order.swapData),
     extra: {
-      prices: order.extra.prices.map(s)
-    }
+      prices: order.extra.prices.map(s),
+    },
   };
 };

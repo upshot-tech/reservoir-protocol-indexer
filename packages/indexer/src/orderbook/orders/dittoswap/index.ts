@@ -3,7 +3,7 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { AddressZero } from "@ethersproject/constants";
 import { Contract } from "@ethersproject/contracts";
 import { keccak256 } from "@ethersproject/solidity";
-import * as Sdk from "@reservoir0x/sdk";
+//import * as Sdk from "@reservoir0x/sdk";
 import _ from "lodash";
 import pLimit from "p-limit";
 
@@ -12,7 +12,6 @@ import { logger } from "@/common/logger";
 import { baseProvider } from "@/common/provider";
 import { bn, toBuffer } from "@/common/utils";
 import { config } from "@/config/index";
-import * as ordersUpdateById from "@/jobs/order-updates/by-id-queue";
 import { Sources } from "@/models/sources";
 import * as commonHelpers from "@/orderbook/orders/common/helpers";
 import {
@@ -25,8 +24,23 @@ import * as tokenSet from "@/orderbook/token-sets";
 import * as royalties from "@/utils/royalties";
 import * as dittoswap from "@/utils/dittoswap";
 
+import {
+  orderUpdatesByIdJob,
+  OrderUpdatesByIdJobPayload,
+} from "@/jobs/order-updates/order-updates-by-id-job";
+
 export type OrderInfo = {
-  orderParams: Sdk.DittoSwap.Types.OrderParams;
+  orderParams: {
+    pool: string;
+    // Validation parameters (for ensuring only the latest event is relevant)
+    txHash: string;
+    txTimestamp: number;
+    txBlock: number;
+    logIndex: number;
+    deadline: number;
+    // Misc options
+    forceRecheck?: boolean;
+  };
   metadata: OrderMetadata;
 };
 
@@ -39,20 +53,16 @@ type SaveResult = {
 };
 
 /**
- * 
+ *
  * @param pool Create an orderId via keccak256.
- * @param tokenKind 
- * @param side 
- * @param tokenId 
- * @returns 
+ * @param tokenKind
+ * @param side
+ * @param tokenId
+ * @returns
  */
-export const getOrderId = (
-  pool: string,
-  side: "sell" | "buy",
-  tokenId?: string
-) =>
+export const getOrderId = (pool: string, side: "sell" | "buy", tokenId?: string) =>
   side === "buy"
-    ? // Buy orders have a single order id per pool (or per token id in the ERC1155 case)
+    ? // Buy orders have a single order id per pool
       keccak256(["string", "address", "string"], ["dittoswap", pool, side])
     : // Sell orders have multiple order ids per pool (one for each potential token id)
       keccak256(["string", "address", "string", "uint256"], ["dittoswap", pool, side, tokenId]);
@@ -87,28 +97,10 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
         return;
       }
 
-
       // Force recheck at most once per hour
       const recheckCondition = orderParams.forceRecheck
         ? `AND orders.updated_at < to_timestamp(${orderParams.txTimestamp - 3600})`
         : `AND lower(orders.valid_between) < to_timestamp(${orderParams.txTimestamp})`;
-
-      // TODO : use two poolContracxts: one for Pool, one for RoyaltyRouter.
-      // const royaltiesContract = new Contract(
-      //   pool.address,
-      //   // TODO: select the dittoswap methods that need to be taken from the contract.
-      //   new Interface([
-      //     `
-      //     function _calculateRoyalties(
-      //       IDittoPool pool,
-      //       uint256 salePrice
-      //     ) internal view returns (address recipient, uint256 royalties)
-      //     `
-      //   ]),
-      //   baseProvider
-      // );
-
-      
 
       const poolContract = new Contract(
         pool.address,
@@ -158,31 +150,25 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
         ]),
         baseProvider
       );
-      // TODO get the fee function too here
-      // Handle: fees
-        // NOTE: TBD confirm what the protocol fee will be.
-        const feeBps = pool.fee; // TODO check it is stored as bps
-        const feeBreakdown: {
-          kind: string;
-          recipient: string;
-          bps: number;
-        }[] = [
-          {
-            kind: "marketplace",
-            recipient: pool.adminFeeRecipient,
-            bps: pool.fee,
-          },
-        ];
+
+      const feeBps = pool.fee;
+      const feeBreakdown: {
+        kind: string;
+        recipient: string;
+        bps: number;
+      }[] = [
+        {
+          kind: "marketplace",
+          recipient: pool.adminFeeRecipient,
+          bps: pool.fee, // 1 wei = 1 bps
+        },
+      ];
 
       // Handle buy orders
-      // TODO Change logic below
       try {
-        
-
         const id = getOrderId(orderParams.pool, "buy");
-        
-        if (!pool.initialized)
-        {
+
+        if (!pool.initialized) {
           await idb.none(
             `
               UPDATE orders SET
@@ -194,10 +180,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
               WHERE orders.id = $/id/
                 ${recheckCondition}
             `,
-            { id,
-              blockNumber: orderParams.blockNumber,
-              logIndex: orderParams.logIndex, 
-            }
+            { id, blockNumber: orderParams.txBlock, logIndex: orderParams.logIndex }
           );
         } else {
           const tokenBalance = await baseProvider.getBalance(pool.address);
@@ -209,7 +192,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
           await Promise.all(
             _.range(0, POOL_ORDERS_MAX_PRICE_POINTS_COUNT).map(async (index) => {
               try {
-                const swapData = ''  // no defined swapData, not sure it's needed
+                const swapData = "0x0";
                 const result = await poolContract.getSellNFTQuote(index + 1, swapData);
                 if (result.error === 0 && result.outputAmount.lte(tokenBalance)) {
                   tmpPriceList[index] = result.outputAmount;
@@ -231,7 +214,6 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
           for (let i = 0; i < priceList.length; i++) {
             prices.push(bn(priceList[i]).sub(i > 0 ? priceList[i - 1] : 0));
           }
-
 
           if (prices.length) {
             // Handle: prices
@@ -281,7 +263,14 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
             const normalizedValue = bn(value).sub(missingRoyaltyAmount);
 
             // Handle: core sdk order
-            const sdkOrder: Sdk.DittoSwap.Order = new Sdk.DittoSwap.Order(config.chainId, orderParams);
+            const sdkOrder: Sdk.Dittoswap.Order = new Sdk.Dittoswap.Order(config.chainId, {
+              pool: orderParams.pool,
+              expectedTokenAmount: prices[0].toString(),
+              swapData: "0x0",
+              extra: {
+                prices: prices.map(String),
+              },
+            });
 
             let orderResult = await idb.oneOrNone(
               `
@@ -349,7 +338,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                 fee_breakdown: feeBreakdown,
                 dynamic: null,
                 raw_data: sdkOrder.params,
-                expiration: validTo,
+                expiration: validTo.toString(),
                 missing_royalties: missingRoyalties,
                 normalized_value: normalizedValue.toString(),
                 currency_normalized_value: normalizedValue.toString(),
@@ -375,7 +364,6 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                     value = $/value/,
                     currency_value = $/value/,
                     quantity_remaining = $/quantityRemaining/,
-                    -- TODO set the end time with the fixed end range
                     valid_between = tstzrange(date_trunc('seconds', to_timestamp(${orderParams.txTimestamp})), 'Infinity', '[]'),
                     expiration = 'Infinity',
                     updated_at = now(),
@@ -399,7 +387,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                   missingRoyalties: missingRoyalties,
                   normalizedValue: normalizedValue.toString(),
                   currencyNormalizedValue: normalizedValue.toString(),
-                  feeBps,
+                  fee_bps: feeBreakdown,
                   feeBreakdown,
                   blockNumber: orderParams.txBlock,
                   logIndex: orderParams.logIndex,
@@ -426,10 +414,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                 WHERE orders.id = $/id/
                 ${recheckCondition}
               `,
-              { id,
-                blockNumber: orderParams.blockNumber,
-                logIndex: orderParams.logIndex
-              }
+              { id, blockNumber: orderParams.txBlock, logIndex: orderParams.logIndex }
             );
 
             results.push({
@@ -450,7 +435,6 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
 
       // TODO Handle sell orders
       try {
-        
         let tmpPriceList: (BigNumber | undefined)[] = Array.from(
           { length: POOL_ORDERS_MAX_PRICE_POINTS_COUNT },
           () => undefined
@@ -458,8 +442,8 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
         await Promise.all(
           _.range(0, POOL_ORDERS_MAX_PRICE_POINTS_COUNT).map(async (index) => {
             try {
-              const swapData = ''  // no defined swapData, not sure it's needed
-              const result = await poolContract.getBuyNFTQuote(index + 1, , swapData);
+              const swapData = "0x0";
+              const result = await poolContract.getBuyNFTQuote(index + 1, _, swapData);
               if (result.error === 0) {
                 tmpPriceList[index] = result.inputAmount;
               }
@@ -489,17 +473,16 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
         // Handle: prices
         const price = prices[0].toString();
         const value = prices[0].toString();
-        // TODO Here nftx substract bps. 
 
         // Fetch all token ids owned by the pool
         const poolOwnedTokenIds = await commonHelpers.getNfts(pool.nft, pool.address);
 
         const limit = pLimit(50);
         await Promise.all(
-          poolOwnedTokenIds.map(({ tokenId, amount }) =>
+          poolOwnedTokenIds.map(({ tokenId }) =>
             limit(async () => {
               try {
-                const id = getOrderId(orderParams.pool, "sell");
+                const id = getOrderId(orderParams.pool, "sell", tokenId);
 
                 // Handle: royalties on top
                 const defaultRoyalties = await royalties.getRoyaltiesByTokenSet(
@@ -539,9 +522,16 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                 const normalizedValue = bn(value).add(missingRoyaltyAmount);
 
                 // Handle: core sdk order
-                // TODO ensure types are ok but should be normalize
-                const sdkOrder: Sdk.DittoSwap.Order = new Sdk.DittoSwap.Order(config.chainId, orderParams);
-                
+                const sdkOrder: Sdk.Dittoswap.Order = new Sdk.Dittoswap.Order(config.chainId, {
+                  pool: orderParams.pool,
+                  nftIds: [tokenId],
+                  expectedTokenAmount: prices[0].toString(),
+                  swapData: "0x0",
+                  extra: {
+                    prices: prices.map(String),
+                  },
+                });
+
                 const orderResult = await redb.oneOrNone(
                   `
                     SELECT 1 FROM orders
@@ -586,7 +576,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                     currency_price: price,
                     currency_value: value,
                     needs_conversion: null,
-                    quantity_remaining: orderParams.amount,
+                    quantity_remaining: "1",
                     valid_between: `tstzrange(${validFrom}, ${validTo}, '[]')`,
                     nonce: null,
                     source_id_int: source?.id,
@@ -597,7 +587,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                     fee_breakdown: feeBreakdown,
                     dynamic: null,
                     raw_data: sdkOrder.params,
-                    expiration: validTo,
+                    expiration: validTo.toString(),
                     missing_royalties: missingRoyalties,
                     normalized_value: normalizedValue.toString(),
                     currency_normalized_value: normalizedValue.toString(),
@@ -614,7 +604,6 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                   });
                 } else {
                   await idb.none(
-                    // TODO handle limited expiration , not infinity
                     `
                       UPDATE orders SET
                         fillability_status = 'fillable',
@@ -642,7 +631,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                       id,
                       price,
                       value,
-                      amount: orderParams.amount,
+                      amount: "1",
                       rawData: sdkOrder.params,
                       missingRoyalties: missingRoyalties,
                       normalizedValue: normalizedValue.toString(),
@@ -668,7 +657,6 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
             })
           )
         );
-        
       } catch (error) {
         logger.error(
           "orders-dittoswap-save",
@@ -731,7 +719,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
     await idb.none(pgp.helpers.insert(orderValues, columns) + " ON CONFLICT DO NOTHING");
   }
 
-  await ordersUpdateById.addToQueue(
+  await orderUpdatesByIdJob.addToQueue(
     results
       .filter(({ status }) => status === "success")
       .map(
@@ -744,7 +732,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
               txHash: txHash,
               txTimestamp: txTimestamp,
             },
-          } as ordersUpdateById.OrderInfo)
+          } as OrderUpdatesByIdJobPayload)
       )
   );
 

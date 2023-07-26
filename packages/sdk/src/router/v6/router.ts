@@ -29,7 +29,7 @@ import {
   PerPoolSwapDetails,
   SwapDetail,
 } from "./types";
-import { generateSwapExecutions } from "./uniswap";
+import { generateSwapExecutions } from "./swap/index";
 import { generateFTApprovalTxData, generateNFTApprovalTxData, isETH, isWETH } from "./utils";
 
 // Tokens
@@ -55,6 +55,7 @@ import SudoswapModuleAbi from "./abis/SudoswapModule.json";
 import DittoswapModuleAbi from "./abis/DittoswapModule.json";
 import SuperRareModuleAbi from "./abis/SuperRareModule.json";
 import SwapModuleAbi from "./abis/SwapModule.json";
+import OneInchSwapModuleAbi from "./abis/OneInchSwapModule.json";
 import X2Y2ModuleAbi from "./abis/X2Y2Module.json";
 import ZeroExV4ModuleAbi from "./abis/ZeroExV4Module.json";
 import ZoraModuleAbi from "./abis/ZoraModule.json";
@@ -138,7 +139,7 @@ export class Router {
       ),
       dittoswapModule: new Contract(
         Addresses.DittoSwapModule[chainId] ?? AddressZero,
-        DittoswapModuleAbi,
+        DittoswapModuleAbi
       ),
       sudoswapV2Module: new Contract(
         Addresses.SudoswapV2Module[chainId] ?? AddressZero,
@@ -190,6 +191,11 @@ export class Router {
         SwapModuleAbi,
         provider
       ),
+      oneInchSwapModule: new Contract(
+        Addresses.OneInchSwapModule[chainId] ?? AddressZero,
+        OneInchSwapModuleAbi,
+        provider
+      ),
       alienswapModule: new Contract(
         Addresses.AlienswapModule[chainId] ?? AddressZero,
         AlienswapModuleAbi,
@@ -233,6 +239,7 @@ export class Router {
       };
       // Use permit instead of approvals (only works for USDC)
       usePermit?: boolean;
+      swapProvider?: "uniswap" | "1inch";
       // Callback for handling errors
       onError?: (
         kind: string,
@@ -768,7 +775,7 @@ export class Router {
         case "sudoswap":
           detailsRef = sudoswapDetails;
           break;
-        
+
         case "dittoswap":
           detailsRef = dittoswapDetails;
           break;
@@ -1726,14 +1733,12 @@ export class Router {
     // Handle Dittoswap listings
     if (dittoswapDetails.length) {
       const orders = dittoswapDetails.map((d) => d.order as Sdk.Dittoswap.Order);
-      const router = new Sdk.Dittoswap.Router(this.chainId)
+      const router = new Sdk.Dittoswap.Router(this.chainId);
       const module = this.contracts.dittoswapModule;
 
-      const fees = getFees(dittoswapDetails)
+      const fees = getFees(dittoswapDetails);
       const price = orders
-        .map((order) =>
-          bn(order.params.amount)
-        )
+        .map((order) => bn(order.params.expectedTokenAmount))
         .reduce((a, b) => a.add(b), bn(0));
       const feeAmount = fees.map(({ amount }) => bn(amount)).reduce((a, b) => a.add(b), bn(0));
       const totalPrice = price.add(feeAmount);
@@ -2666,6 +2671,10 @@ export class Router {
           .map((order) => bn(order.tokenOutAmount))
           .reduce((a, b) => a.add(b), bn(0));
 
+        const swapProvider = options?.swapProvider ?? "uniswap";
+        const swapModule =
+          swapProvider === "uniswap" ? this.contracts.swapModule : this.contracts.oneInchSwapModule;
+
         try {
           // Only generate a swap if the in token is different from the out token
           let inAmount = totalAmountOut.toString();
@@ -2673,11 +2682,12 @@ export class Router {
             const { executions: swapExecutions, amountIn } = await generateSwapExecutions(
               this.chainId,
               this.provider,
+              swapProvider,
               tokenIn,
               tokenOut,
               totalAmountOut,
               {
-                swapModule: this.contracts.swapModule,
+                module: swapModule,
                 transfers,
                 refundTo: relayer,
               }
@@ -2714,7 +2724,7 @@ export class Router {
                     amount: inAmount,
                   },
                 ],
-                recipient: this.contracts.swapModule.address,
+                recipient: swapModule.address,
               });
             } else {
               // Split based on the individual transfers
@@ -3071,7 +3081,7 @@ export class Router {
           module = this.contracts.dittoswapModule;
           break;
         }
-        
+
         case "sudoswap-v2": {
           module = this.contracts.sudoswapV2Module;
           break;
@@ -3587,7 +3597,7 @@ export class Router {
 
           break;
         }
-    
+
         case "dittoswap": {
           const order = detail.order as Sdk.Dittoswap.Order;
           const module = this.contracts.dittoswapModule;
@@ -3599,7 +3609,7 @@ export class Router {
               module: module.address,
               data: router.fillSellOrderTx(taker, order).data,
               value: 0,
-            }
+            },
           });
 
           success[detail.orderId] = true;

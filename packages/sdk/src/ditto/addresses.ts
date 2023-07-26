@@ -7,7 +7,6 @@ export const Pool: ChainIdToAddress = {
 
 export const PoolFactory: ChainIdToAddress = {
   [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
-  //[Network.EthereumGoerli]: "0xE6146a5585943e1C7df0a24403D80f89cD239725",
   [Network.EthereumGoerli]: "0xF7cd2CD77eEbC441ac31F17d52006Dc1De0eF538",
 };
 
@@ -25,5 +24,3 @@ export const UpshotOracle: ChainIdToAddress = {
   [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
   [Network.EthereumGoerli]: "0x24D3906675C35590B95c9Cc393ab11619624e840",
 };
-
-

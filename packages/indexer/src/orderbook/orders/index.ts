@@ -25,7 +25,6 @@ export * as dittoswap from "@/orderbook/orders/dittoswap";
 export * as caviarV1 from "@/orderbook/orders/caviar-v1";
 export * as paymentProcessor from "@/orderbook/orders/payment-processor";
 
-
 // Imports
 
 import * as Sdk from "@reservoir0x/sdk";
@@ -164,7 +163,7 @@ export const getOrderSourceByOrderKind = async (
       case "sudoswap-v2":
         return sources.getOrInsert("sudoswap.xyz");
       case "dittoswap":
-          return sources.getOrInsert("dittohq.xyz");
+        return sources.getOrInsert("dittohq.xyz");
       case "caviar-v1":
         return sources.getOrInsert("caviar.sh");
       case "nftx":
@@ -419,10 +418,10 @@ export const generateListingDetailsV6 = (
       return {
         kind: "dittoswap",
         ...common,
-        order: new Sdk.DittoSwap.Order(config.chainId, order.rawData),
-      }
+        order: new Sdk.Dittoswap.Order(config.chainId, order.rawData),
+      };
     }
-    
+
     case "caviar-v1": {
       return {
         kind: "caviar-v1",
@@ -758,7 +757,7 @@ export const generateBidDetailsV6 = async (
         order: sdkOrder,
       };
     }
-    
+
     case "caviar-v1": {
       const sdkOrder = new Sdk.CaviarV1.Order(config.chainId, order.rawData);
 
@@ -1014,6 +1013,7 @@ export const checkBlacklistAndFallback = async (
   if (["looks-rare-v2"].includes(params.orderKind) && ["looks-rare"].includes(params.orderbook)) {
     const blocked = await checkMarketplaceIsFiltered(collection, [
       Sdk.LooksRareV2.Addresses.Exchange[config.chainId],
+      Sdk.LooksRareV2.Addresses.TransferManager[config.chainId],
     ]);
     if (blocked) {
       params.orderKind = "seaport-v1.5";
@@ -1024,6 +1024,9 @@ export const checkBlacklistAndFallback = async (
   if (["seaport-v1.5"].includes(params.orderKind) && ["reservoir"].includes(params.orderbook)) {
     const blocked = await checkMarketplaceIsFiltered(collection, [
       Sdk.SeaportV15.Addresses.Exchange[config.chainId],
+      new Sdk.SeaportBase.ConduitController(config.chainId).deriveConduit(
+        Sdk.SeaportBase.Addresses.OpenseaConduitKey[config.chainId]
+      ),
     ]);
     if (blocked) {
       params.orderKind = "payment-processor";

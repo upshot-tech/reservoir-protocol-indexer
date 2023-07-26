@@ -145,6 +145,14 @@ export type GenericOrderInfo =
       validateBidValue?: boolean;
       ingestMethod?: "websocket" | "rest";
       ingestDelay?: number;
+    }
+  | {
+      kind: "dittoswap";
+      info: orders.dittoswap.OrderInfo;
+      relayToArweave?: boolean;
+      validateBidValue?: boolean;
+      ingestMethod?: "websocket" | "rest";
+      ingestDelay?: number;
     };
 
 export const processOrder = async (job: AbstractRabbitMqJobHandler, payload: GenericOrderInfo) => {
