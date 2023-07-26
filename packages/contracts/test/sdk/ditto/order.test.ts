@@ -22,7 +22,5 @@ describe("Dittoswap - Order", () => {
 
   afterEach(reset);
 
-  it("Check normalized order", async () => {
-
-  });
+  it("Check normalized order", async () => {});
 });
