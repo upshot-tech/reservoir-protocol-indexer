@@ -1732,8 +1732,8 @@ export class Router {
 
     // Handle Dittoswap listings
     if (dittoswapDetails.length) {
-      const orders = dittoswapDetails.map((d) => d.order as Sdk.Dittoswap.Order);
-      const router = new Sdk.Dittoswap.Router(this.chainId);
+      const orders = dittoswapDetails.map((d) => d.order as Sdk.Ditto.Order);
+      const router = new Sdk.Ditto.Router(this.chainId);
       const module = this.contracts.dittoswapModule;
 
       const fees = getFees(dittoswapDetails);
@@ -3599,9 +3599,9 @@ export class Router {
         }
 
         case "dittoswap": {
-          const order = detail.order as Sdk.Dittoswap.Order;
+          const order = detail.order as Sdk.Ditto.Order;
           const module = this.contracts.dittoswapModule;
-          const router = new Sdk.Dittoswap.Router(this.chainId);
+          const router = new Sdk.Ditto.Router(this.chainId);
 
           executionsWithDetails.push({
             detail,

@@ -5,8 +5,8 @@ import { ethers } from "hardhat";
 import * as Sdk from "../../../../sdk/src";
 import abiErc20 from "../../../../sdk/src/ditto/abis/Erc20.json";
 import abiErc721 from "../../../../sdk/src/ditto/abis/Erc721.json";
-import abiDittoPool from "../../../../sdk/src/ditto/abis/Pool.json";
-import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/PoolFactory.json";
+import abiDittoPool from "../../../../sdk/src/ditto/abis/DittoPool.json";
+import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/DittoPoolFactory.json";
 import { getChainId } from "../../utils";
 
 export const setupDittoListings = async () => {

@@ -144,7 +144,7 @@ export type GenericOrder =
     }
   | {
       kind: "dittoswap";
-      order: Sdk.Dittoswap.Order;
+      order: Sdk.Ditto.Order;
     }
   | {
       kind: "sudoswap-v2";
