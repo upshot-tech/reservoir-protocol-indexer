@@ -3,7 +3,7 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { AddressZero } from "@ethersproject/constants";
 import { Contract } from "@ethersproject/contracts";
 import { keccak256 } from "@ethersproject/solidity";
-//import * as Sdk from "@reservoir0x/sdk";
+import * as Sdk from "@reservoir0x/sdk";
 import _ from "lodash";
 import pLimit from "p-limit";
 
@@ -263,7 +263,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
             const normalizedValue = bn(value).sub(missingRoyaltyAmount);
 
             // Handle: core sdk order
-            const sdkOrder: Sdk.Dittoswap.Order = new Sdk.Dittoswap.Order(config.chainId, {
+            const sdkOrder: Sdk.Ditto.Order = new Sdk.Ditto.Order(config.chainId, {
               pool: orderParams.pool,
               expectedTokenAmount: prices[0].toString(),
               swapData: "0x0",
@@ -522,7 +522,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                 const normalizedValue = bn(value).add(missingRoyaltyAmount);
 
                 // Handle: core sdk order
-                const sdkOrder: Sdk.Dittoswap.Order = new Sdk.Dittoswap.Order(config.chainId, {
+                const sdkOrder: Sdk.Ditto.Order = new Sdk.Ditto.Order(config.chainId, {
                   pool: orderParams.pool,
                   nftIds: [tokenId],
                   expectedTokenAmount: prices[0].toString(),

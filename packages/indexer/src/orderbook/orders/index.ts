@@ -418,7 +418,7 @@ export const generateListingDetailsV6 = (
       return {
         kind: "dittoswap",
         ...common,
-        order: new Sdk.Dittoswap.Order(config.chainId, order.rawData),
+        order: new Sdk.Ditto.Order(config.chainId, order.rawData),
       };
     }
 
@@ -750,7 +750,7 @@ export const generateBidDetailsV6 = async (
     }
 
     case "dittoswap": {
-      const sdkOrder = new Sdk.Dittoswap.Order(config.chainId, order.rawData);
+      const sdkOrder = new Sdk.Ditto.Order(config.chainId, order.rawData);
       return {
         kind: "dittoswap",
         ...common,
