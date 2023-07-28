@@ -9,7 +9,7 @@ CREATE TABLE "dittoswap_pools" (
   "initialized" BOOLEAN NOT NULL,
   "template" BYTEA NOT NULL,
   "fee" INTEGER, -- bps - can be null
-  "delta" DECIMAL,
+  "delta" NUMERIC(78, 0) NOT NULL,
   "adminFeeRecipient" BYTEA NOT NULL
 );
 
