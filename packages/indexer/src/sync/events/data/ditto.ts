@@ -6,7 +6,7 @@ import { EventData } from "@/events-sync/data";
  */
 
 export const poolCreated: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-pool-created",
   topic: "0x47c73863168b3080e0e387c11995820f90746ddb0d566efa696c327137a601c2",
   numTopics: 1,
@@ -20,7 +20,7 @@ export const poolCreated: EventData = {
  */
 
 export const changeBasePrice: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-change-base-price",
   topic: "0x4b55931a4085849dfaf93c2344ab789548473ef35191fec9653cef6b4d517765",
   numTopics: 1,
@@ -32,7 +32,7 @@ export const changeBasePrice: EventData = {
 };
 
 export const changeDelta: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-change-delta",
   topic: "0x215988d2aaea1f25437c87d9b4c7b329541654de99cfdf677691951a135bfbad",
   numTopics: 1,
@@ -44,7 +44,7 @@ export const changeDelta: EventData = {
 };
 
 export const changeAdminFeeRecipient: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-change-admin-fee-recipient",
   topic: "",
   numTopics: 1,
@@ -56,7 +56,7 @@ export const changeAdminFeeRecipient: EventData = {
 };
 
 export const changeAdminChangedAdminFee: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-change-admin-fee",
   topic: "0xcd79476b656fecd94ac609917c143e2dbfb2f609aff4e42b07528ff31ccb3032",
   numTopics: 1,
@@ -68,7 +68,7 @@ export const changeAdminChangedAdminFee: EventData = {
 };
 
 export const changeAdminChangedLpFee: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-change-admin-lp-fee",
   topic: "0x50242e453835985d85a43b6291bd218321f782131b8d34e8e92ad7b243a840ce",
   numTopics: 1,
@@ -80,7 +80,7 @@ export const changeAdminChangedLpFee: EventData = {
 };
 
 export const tradeSwappedTokensForNft: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-trade-swapped-tokens-for-nft",
   topic: "0xaf55c27589967940201b48853c5edb0b958104a4e136c7305c9ad5aaee4b1d6d",
   numTopics: 1,
@@ -90,7 +90,7 @@ export const tradeSwappedTokensForNft: EventData = {
 };
 
 export const tradeSwappedNftForTokens: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-trade-swapped-nft-for-tokens",
   topic: "0xd29a2b5a8296788ca359d8fc626bea426929592b0510cb549cd959f5943bb8d6",
   numTopics: 1,
@@ -100,7 +100,7 @@ export const tradeSwappedNftForTokens: EventData = {
 };
 
 export const liquidityAdded: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-liquidity-added",
   topic: "",
   numTopics: 1,
@@ -116,7 +116,7 @@ export const liquidityAdded: EventData = {
 };
 
 export const liquidityRemoved: EventData = {
-  kind: "dittoswap",
+  kind: "ditto",
   subKind: "dittoswap-liquidity-removed",
   topic: "",
   numTopics: 1,

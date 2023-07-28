@@ -143,7 +143,7 @@ export type GenericOrder =
       order: Sdk.LooksRareV2.Order;
     }
   | {
-      kind: "dittoswap";
+      kind: "ditto";
       order: Sdk.Ditto.Order;
     }
   | {

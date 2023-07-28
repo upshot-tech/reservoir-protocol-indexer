@@ -52,7 +52,7 @@ import SeaportV14ModuleAbi from "./abis/SeaportV14Module.json";
 import SeaportV15ModuleAbi from "./abis/SeaportV15Module.json";
 import AlienswapModuleAbi from "./abis/AlienswapModule.json";
 import SudoswapModuleAbi from "./abis/SudoswapModule.json";
-import DittoswapModuleAbi from "./abis/DittoswapModule.json";
+import DittoModuleAbi from "./abis/DittoModule.json";
 import SuperRareModuleAbi from "./abis/SuperRareModule.json";
 import SwapModuleAbi from "./abis/SwapModule.json";
 import OneInchSwapModuleAbi from "./abis/OneInchSwapModule.json";
@@ -139,7 +139,7 @@ export class Router {
       ),
       dittoswapModule: new Contract(
         Addresses.DittoSwapModule[chainId] ?? AddressZero,
-        DittoswapModuleAbi
+        DittoModuleAbi
       ),
       sudoswapV2Module: new Contract(
         Addresses.SudoswapV2Module[chainId] ?? AddressZero,
@@ -776,7 +776,7 @@ export class Router {
           detailsRef = sudoswapDetails;
           break;
 
-        case "dittoswap":
+        case "ditto":
           detailsRef = dittoswapDetails;
           break;
 
@@ -3077,7 +3077,7 @@ export class Router {
           break;
         }
 
-        case "dittoswap": {
+        case "ditto": {
           module = this.contracts.dittoswapModule;
           break;
         }
@@ -3598,7 +3598,7 @@ export class Router {
           break;
         }
 
-        case "dittoswap": {
+        case "ditto": {
           const order = detail.order as Sdk.Ditto.Order;
           const module = this.contracts.dittoswapModule;
           const router = new Sdk.Ditto.Router(this.chainId);

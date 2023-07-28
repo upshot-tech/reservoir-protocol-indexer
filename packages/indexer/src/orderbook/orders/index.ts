@@ -21,7 +21,7 @@ export * as superrare from "@/orderbook/orders/superrare";
 export * as looksRareV2 from "@/orderbook/orders/looks-rare-v2";
 export * as collectionxyz from "@/orderbook/orders/collectionxyz";
 export * as sudoswapV2 from "@/orderbook/orders/sudoswap-v2";
-export * as dittoswap from "@/orderbook/orders/dittoswap";
+export * as ditto from "@/orderbook/orders/dittoswap";
 export * as caviarV1 from "@/orderbook/orders/caviar-v1";
 export * as paymentProcessor from "@/orderbook/orders/payment-processor";
 
@@ -80,7 +80,7 @@ export type OrderKind =
   | "blend"
   | "collectionxyz"
   | "sudoswap-v2"
-  | "dittoswap"
+  | "ditto"
   | "caviar-v1"
   | "payment-processor"
   | "blur-v2";
@@ -162,7 +162,7 @@ export const getOrderSourceByOrderKind = async (
       case "sudoswap":
       case "sudoswap-v2":
         return sources.getOrInsert("sudoswap.xyz");
-      case "dittoswap":
+      case "ditto":
         return sources.getOrInsert("dittohq.xyz");
       case "caviar-v1":
         return sources.getOrInsert("caviar.sh");
@@ -414,9 +414,9 @@ export const generateListingDetailsV6 = (
       };
     }
 
-    case "dittoswap": {
+    case "ditto": {
       return {
-        kind: "dittoswap",
+        kind: "ditto",
         ...common,
         order: new Sdk.Ditto.Order(config.chainId, order.rawData),
       };
@@ -749,10 +749,10 @@ export const generateBidDetailsV6 = async (
       };
     }
 
-    case "dittoswap": {
+    case "ditto": {
       const sdkOrder = new Sdk.Ditto.Order(config.chainId, order.rawData);
       return {
-        kind: "dittoswap",
+        kind: "ditto",
         ...common,
         order: sdkOrder,
       };

@@ -147,8 +147,8 @@ export type GenericOrderInfo =
       ingestDelay?: number;
     }
   | {
-      kind: "dittoswap";
-      info: orders.dittoswap.OrderInfo;
+      kind: "ditto";
+      info: orders.ditto.OrderInfo;
       relayToArweave?: boolean;
       validateBidValue?: boolean;
       ingestMethod?: "websocket" | "rest";
@@ -238,6 +238,11 @@ export const processOrder = async (job: AbstractRabbitMqJobHandler, payload: Gen
 
       case "nftx": {
         result = await orders.nftx.save([info]);
+        break;
+      }
+
+      case "ditto": {
+        result = await orders.ditto.save([info]);
         break;
       }
 

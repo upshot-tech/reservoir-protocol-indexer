@@ -121,8 +121,8 @@ export class OpenseaBidsQueueJob extends AbstractRabbitMqJobHandler {
           break;
         }
 
-        case "dittoswap": {
-          result = await orders.dittoswap.save([info]);
+        case "ditto": {
+          result = await orders.ditto.save([info]);
           break;
         }
       }

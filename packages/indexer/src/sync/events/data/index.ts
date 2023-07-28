@@ -42,7 +42,7 @@ import * as paymentProcessor from "@/events-sync/data/payment-processor";
 import * as thirdweb from "@/events-sync/data/thirdweb";
 import * as blurV2 from "@/events-sync/data/blur-v2";
 import * as seadrop from "@/events-sync/data/seadrop";
-import * as dittoswap from "@/events-sync/data/dittoswap";
+import * as ditto from "@/events-sync/data/ditto";
 
 // All events we're syncing should have an associated `EventData`
 // entry which dictates the way the event will be parsed and then
@@ -88,7 +88,7 @@ export type EventKind =
   | "thirdweb"
   | "seadrop"
   | "blur-v2"
-  | "dittoswap";
+  | "ditto";
 
 // Event sub-kind in each of the above protocol/standard
 export type EventSubKind =
@@ -467,16 +467,16 @@ const allEventData = [
   sudoswapV2.newERC721Pair,
   sudoswapV2.newERC1155Pair,
   treasure.bidAccepted,
-  dittoswap.poolCreated,
-  dittoswap.changeBasePrice,
-  dittoswap.changeDelta,
-  dittoswap.changeAdminFeeRecipient,
-  dittoswap.changeAdminChangedAdminFee,
-  dittoswap.changeAdminChangedLpFee,
-  dittoswap.tradeSwappedTokensForNft,
-  dittoswap.tradeSwappedNftForTokens,
-  dittoswap.liquidityAdded,
-  dittoswap.liquidityRemoved,
+  ditto.poolCreated,
+  ditto.changeBasePrice,
+  ditto.changeDelta,
+  ditto.changeAdminFeeRecipient,
+  ditto.changeAdminChangedAdminFee,
+  ditto.changeAdminChangedLpFee,
+  ditto.tradeSwappedTokensForNft,
+  ditto.tradeSwappedNftForTokens,
+  ditto.liquidityAdded,
+  ditto.liquidityRemoved,
   caviarV1.create,
   caviarV1.add,
   caviarV1.remove,

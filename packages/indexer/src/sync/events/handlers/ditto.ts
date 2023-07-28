@@ -28,7 +28,7 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
         }
 
         onChainData.orders.push({
-          kind: "dittoswap",
+          kind: "ditto",
           info: {
             orderParams: {
               pool: baseEventParams.address,
@@ -46,7 +46,7 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
         const priceData = await getUSDAndNativePrices(pool.token, price, baseEventParams.timestamp);
         if (!priceData.nativePrice) break;
 
-        const orderKind = "dittoswap";
+        const orderKind = "ditto";
         const attributionData = await utils.extractAttributionData(
           baseEventParams.txHash,
           orderKind
@@ -110,7 +110,7 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
         }
 
         onChainData.orders.push({
-          kind: "dittoswap",
+          kind: "ditto",
           info: {
             orderParams: {
               pool: baseEventParams.address,
@@ -128,7 +128,7 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
         const priceData = await getUSDAndNativePrices(pool.token, price, baseEventParams.timestamp);
         if (!priceData.nativePrice) break;
 
-        const orderKind = "dittoswap";
+        const orderKind = "ditto";
         const attributionData = await utils.extractAttributionData(
           baseEventParams.txHash,
           orderKind

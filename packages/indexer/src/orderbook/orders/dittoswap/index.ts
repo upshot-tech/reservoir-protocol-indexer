@@ -22,7 +22,7 @@ import {
 } from "@/orderbook/orders/utils";
 import * as tokenSet from "@/orderbook/token-sets";
 import * as royalties from "@/utils/royalties";
-import * as dittoswap from "@/utils/dittoswap";
+import * as ditto from "@/utils/dittoswap";
 
 import {
   orderUpdatesByIdJob,
@@ -63,9 +63,9 @@ type SaveResult = {
 export const getOrderId = (pool: string, side: "sell" | "buy", tokenId?: string) =>
   side === "buy"
     ? // Buy orders have a single order id per pool
-      keccak256(["string", "address", "string"], ["dittoswap", pool, side])
+      keccak256(["string", "address", "string"], ["ditto", pool, side])
     : // Sell orders have multiple order ids per pool (one for each potential token id)
-      keccak256(["string", "address", "string", "uint256"], ["dittoswap", pool, side, tokenId]);
+      keccak256(["string", "address", "string", "uint256"], ["ditto", pool, side, tokenId]);
 
 export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
   const results: SaveResult[] = [];
@@ -73,7 +73,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
 
   const handleOrder = async ({ orderParams }: OrderInfo) => {
     try {
-      const pool = await dittoswap.getPoolDetails(orderParams.pool);
+      const pool = await ditto.getPoolDetails(orderParams.pool);
       if (!pool) {
         throw new Error("Could not fetch pool details");
       }
@@ -306,14 +306,14 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
 
               // Handle: source
               const sources = await Sources.getInstance();
-              const source = await sources.getOrInsert("dittoswap.xyz");
+              const source = await sources.getOrInsert("dittohq.xyz");
 
               // TODO: change into getting the fixed limit (not infinity? but sudo and nftx both have it)
               const validFrom = `date_trunc('seconds', to_timestamp(${orderParams.txTimestamp}))`;
               const validTo = orderParams.deadline;
               orderValues.push({
                 id,
-                kind: "dittoswap",
+                kind: "ditto",
                 side: "buy",
                 fillability_status: "fillable",
                 approval_status: "approved",
@@ -562,7 +562,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
                   const validTo = orderParams.deadline;
                   orderValues.push({
                     id,
-                    kind: "dittoswap",
+                    kind: "ditto",
                     side: "sell",
                     fillability_status: "fillable",
                     approval_status: "approved",
