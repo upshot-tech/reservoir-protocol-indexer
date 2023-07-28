@@ -1,11 +1,13 @@
-import { Contract } from "@ethersproject/contracts";
+import { Contract, ContractReceipt } from "@ethersproject/contracts";
 import { parseEther } from "@ethersproject/units";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { ethers } from "hardhat";
+import { ethers as hre} from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { expect } from "chai";
 import { setupDittoListings } from "../helpers/ditto";
-import abiDittoPool from "../../../../sdk/src/ditto/abis/Pool.json";
+import abiDittoPool from "../../../../sdk/src/ditto/abis/DittoPool.json";
+import { Log } from "@ethersproject/abstract-provider";
+import { EventFragment, LogDescription } from "ethers/lib/utils";
 
 /**
  * run with the following command:
@@ -41,23 +43,23 @@ describe("DittoModule", () => {
         });
 
         adminAddress = "0x00000000000000000000000000000000DeaDBeef";
-        impersonatedSigner = await ethers.getImpersonatedSigner(adminAddress); 
+        impersonatedSigner = await hre.getImpersonatedSigner(adminAddress); 
         poolAddress = dittoPool.address;
 
-        [deployer, alice, bob] = await ethers.getSigners();
+        [deployer, alice, bob] = await hre.getSigners();
 
         initialTokenBalance = parseEther("100");
 
-        router = await ethers.getContractFactory("ReservoirV6_0_1", deployer).then((factory) => 
+        router = await hre.getContractFactory("ReservoirV6_0_1", deployer).then((factory) => 
             factory.deploy()
         );
 
-        dittoModule = await ethers.getContractFactory("DittoModule", deployer).then((factory) =>
+        dittoModule = await hre.getContractFactory("DittoModule", deployer).then((factory) =>
             factory.deploy(deployer.address, router.address)
         );
 
         const ownerAddress: string = await dittoPoolFactory.owner();
-        const ownerSigner: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress);
+        const ownerSigner: SignerWithAddress = await hre.getImpersonatedSigner(ownerAddress);
         await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
     });
 
@@ -65,12 +67,12 @@ describe("DittoModule", () => {
 
         const tokenId00 = 13;
         await nft.connect(bob).mint(bob.address, tokenId00);
-        await nft.ownerOf(tokenId00).then((owner: any) => {
+        await nft.ownerOf(tokenId00).then((owner: string) => {
             expect(owner).to.eq(bob.address);
         });
 
         await token.connect(alice).mint(alice.address, initialTokenBalance);
-        await token.balanceOf(alice.address).then((balance: any) => {
+        await token.balanceOf(alice.address).then((balance: BigNumber) => {
             expect(balance).to.equal(initialTokenBalance);
         });
         await token.connect(alice).approve(dittoPoolFactory.address, initialTokenBalance);
@@ -128,15 +130,28 @@ describe("DittoModule", () => {
             poolManagerTemplate,
             permitterTemplate
         );
-        let output = await txn.wait();  
-
-        const event00: any = output.events.find((event: { event: string; }) => event.event === 'DittoPoolFactoryDittoPoolCreated');
-        const dpAddress = event00.args.dittoPool;
+        let output: ContractReceipt = await txn.wait();  
+        const log00 = output.logs.find((log: Log) => {
+            try {
+                const parsedLog: LogDescription = dittoPoolFactory.interface.parseLog(log);
+                if (parsedLog.name === 'DittoPoolFactoryDittoPoolCreated') {
+                    return true;
+                }
+            } catch(e) {
+                return false;
+            }
+            return false;
+        });
+        if (log00 === undefined) {
+            throw new Error('DittoPoolFactoryDittoPoolCreated event not found');
+        } else {
+        const event00 = dittoPoolFactory.interface.parseLog(log00);
+        const dpAddress: string = event00.args.dittoPool;
 
         const dittoPoolLin: Contract = new Contract(
             dpAddress,
             abiDittoPool,
-            ethers.provider 
+            hre.provider 
         );
 
         let lpId = await dittoPoolLin.getAllPoolLpIds();
@@ -188,6 +203,8 @@ describe("DittoModule", () => {
         await nft.ownerOf(tokenId00).then((owner: any) => {
             expect(owner).to.eq(dittoPoolLin.address);
         });
+
+        }
     });
 
 });

@@ -7,20 +7,30 @@ export const Pool: ChainIdToAddress = {
 
 export const PoolFactory: ChainIdToAddress = {
   [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
-  [Network.EthereumGoerli]: "0xF7cd2CD77eEbC441ac31F17d52006Dc1De0eF538",
+  [Network.EthereumGoerli]: "0x5c5ADaa05a3350582F1228A879003b87Ec6e07c4",
 };
 
 export const Test721: ChainIdToAddress = {
   [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
-  [Network.EthereumGoerli]: "0x5979F4164A5873f23e354090f0a70bC7a60D0CA1",
+  [Network.EthereumGoerli]: "0x0133B5f5601D0B2980ac812A1719760ba3ea53e7",
 };
 
 export const Test20: ChainIdToAddress = {
   [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
-  [Network.EthereumGoerli]: "0x3e614639A6F5eA8B3698024031a9CAf211aC45EF",
+  [Network.EthereumGoerli]: "0x8cAa8de40048C4c840014BdEc44373548b61568d",
 };
 
 export const UpshotOracle: ChainIdToAddress = {
   [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
   [Network.EthereumGoerli]: "0x24D3906675C35590B95c9Cc393ab11619624e840",
+};
+
+export const DittoPoolRouter: ChainIdToAddress = {
+  [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
+  [Network.EthereumGoerli]: "0x2541035Fb28D31cD3385eFb659DE4F946AbB6fd8",
+};
+
+export const DittoPoolRouterRoyalties: ChainIdToAddress = {
+  [Network.Ethereum]: "0x0000000000000000000000000000000000000000",
+  [Network.EthereumGoerli]: "0x9D561aFFF27270c5c226C78EaB963ea7F6D37550",
 };
