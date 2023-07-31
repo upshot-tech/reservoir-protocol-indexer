@@ -22,7 +22,7 @@ import {
 } from "@/orderbook/orders/utils";
 import * as tokenSet from "@/orderbook/token-sets";
 import * as royalties from "@/utils/royalties";
-import * as ditto from "@/utils/dittoswap";
+import * as ditto from "@/utils/ditto";
 
 import {
   orderUpdatesByIdJob,
@@ -428,7 +428,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
         }
       } catch (error) {
         logger.error(
-          "orders-dittoswap-save",
+          "orders-ditto-save",
           `Failed to handle buy order with params ${JSON.stringify(orderParams)}: ${error}`
         );
       }
@@ -556,7 +556,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
 
                   // Handle: source
                   const sources = await Sources.getInstance();
-                  const source = await sources.getOrInsert("dittoswap.xyz");
+                  const source = await sources.getOrInsert("ditto.xyz");
 
                   const validFrom = `date_trunc('seconds', to_timestamp(${orderParams.txTimestamp}))`;
                   const validTo = orderParams.deadline;
@@ -659,13 +659,13 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
         );
       } catch (error) {
         logger.error(
-          "orders-dittoswap-save",
+          "orders-ditto-save",
           `Failed to handle sell order with params ${JSON.stringify(orderParams)}: ${error}`
         );
       }
     } catch (error) {
       logger.error(
-        "orders-dittoswap-save",
+        "orders-ditto-save",
         `Failed to handle order with params ${JSON.stringify(orderParams)}: ${error}`
       );
     }
@@ -675,7 +675,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
   const limit = pLimit(20);
   await Promise.all(orderInfos.map((orderInfo) => limit(() => handleOrder(orderInfo))));
 
-  logger.info("dittoswap-debug", JSON.stringify(results));
+  logger.info("ditto-debug", JSON.stringify(results));
 
   if (orderValues.length) {
     const columns = new pgp.helpers.ColumnSet(
