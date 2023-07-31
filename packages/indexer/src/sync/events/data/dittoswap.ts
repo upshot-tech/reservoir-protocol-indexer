@@ -11,7 +11,7 @@ export const poolCreated: EventData = {
   topic: "0x47c73863168b3080e0e387c11995820f90746ddb0d566efa696c327137a601c2",
   numTopics: 1,
   abi: new Interface([
-    `event DittoPoolFactoryDittoPoolCreated((bool,uint256,address,address,uint96,address,uint96,uint128,uint128,uint256[],uint256,bytes,bytes),address,(uint256,bytes),address,(uint256,bytes,bytes),address,bool,bytes)`,
+    `event DittoPoolFactoryDittoPoolCreated((bool isPrivatePool, uint256 templateIndex, address token, address nft, uint96 feeLp, address owner, uint96 feeAdmin, uint128 delta, uint128 basePrice, uint256[] nftIdList, uint256 initialTokenBalance, bytes templateInitData, bytes referrer),address dittoPool,(uint256 templateIndex, bytes templateInitData), address poolManager, (uint256 templateIndex, bytes templateInitData, bytes liquidityDepositPermissionData), address permitter, bool permitterInitiallyLocked, bytes permitterInitData)`,
   ]),
 };
 
@@ -85,7 +85,7 @@ export const tradeSwappedTokensForNft: EventData = {
   topic: "0xaf55c27589967940201b48853c5edb0b958104a4e136c7305c9ad5aaee4b1d6d",
   numTopics: 1,
   abi: new Interface([
-    `event DittoPoolTradeSwappedTokensForNft(uint256,uint256,uint256,(uint256,uint256,uint256))`,
+    `event DittoPoolTradeSwappedTokensForNft(uint256 sellerLpId, uint256 nftId, uint256 price, (uint256 lp, uint256 admin, uint256 protocol))`,
   ]),
 };
 
@@ -95,7 +95,7 @@ export const tradeSwappedNftForTokens: EventData = {
   topic: "0xd29a2b5a8296788ca359d8fc626bea426929592b0510cb549cd959f5943bb8d6",
   numTopics: 1,
   abi: new Interface([
-    `event DittoPoolTradeSwappedNftForTokens(uint256,uint256,uint256,(uint256,uint256,uint256))`,
+    `event DittoPoolTradeSwappedNftForTokens(uint256 buyerLpId, uint256 nftId, uint256 price, (uint256 lp, uint256 admin, uint256 protocol))`,
   ]),
 };
 
