@@ -2,7 +2,7 @@ import { bn } from "@/common/utils";
 import { getEventData } from "@/events-sync/data";
 import { EnhancedEvent, OnChainData } from "@/events-sync/handlers/utils";
 import * as utils from "@/events-sync/utils";
-import { getOrderId } from "@/orderbook/orders/dittoswap";
+// import { getOrderId } from "@/orderbook/orders/dittoswap";
 import { getUSDAndNativePrices } from "@/utils/prices";
 import * as dittoswap from "@/utils/dittoswap";
 
@@ -27,20 +27,20 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
           break;
         }
 
-        onChainData.orders.push({
-          kind: "ditto",
-          info: {
-            orderParams: {
-              pool: baseEventParams.address,
-              deadline: baseEventParams.timestamp,
-              txHash: baseEventParams.txHash,
-              txTimestamp: baseEventParams.timestamp,
-              txBlock: baseEventParams.block,
-              logIndex: baseEventParams.logIndex,
-            },
-            metadata: {},
-          },
-        });
+        // onChainData.orders.push({
+        //   kind: "ditto",
+        //   info: {
+        //     orderParams: {
+        //       pool: baseEventParams.address,
+        //       deadline: baseEventParams.timestamp,
+        //       txHash: baseEventParams.txHash,
+        //       txTimestamp: baseEventParams.timestamp,
+        //       txBlock: baseEventParams.block,
+        //       logIndex: baseEventParams.logIndex,
+        //     },
+        //     metadata: {},
+        //   },
+        // });
         const tokenId = parsedLog.args.nftId;
         const price = bn(parsedLog.args.price).toString();
         const priceData = await getUSDAndNativePrices(pool.token, price, baseEventParams.timestamp);
@@ -51,7 +51,7 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
           baseEventParams.txHash,
           orderKind
         );
-        const orderId = getOrderId(pool.address, "sell", tokenId);
+        const orderId = "1"; // getOrderId(pool.address, "sell", tokenId);
         const taker = (await utils.fetchTransaction(baseEventParams.txHash)).from;
 
         onChainData.fillEventsOnChain.push({
@@ -109,20 +109,20 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
           break;
         }
 
-        onChainData.orders.push({
-          kind: "ditto",
-          info: {
-            orderParams: {
-              pool: baseEventParams.address,
-              deadline: baseEventParams.timestamp,
-              txHash: baseEventParams.txHash,
-              txTimestamp: baseEventParams.timestamp,
-              txBlock: baseEventParams.block,
-              logIndex: baseEventParams.logIndex,
-            },
-            metadata: {},
-          },
-        });
+        // onChainData.orders.push({
+        //   kind: "ditto",
+        //   info: {
+        //     orderParams: {
+        //       pool: baseEventParams.address,
+        //       deadline: baseEventParams.timestamp,
+        //       txHash: baseEventParams.txHash,
+        //       txTimestamp: baseEventParams.timestamp,
+        //       txBlock: baseEventParams.block,
+        //       logIndex: baseEventParams.logIndex,
+        //     },
+        //     metadata: {},
+        //   },
+        // });
         const tokenId = parsedLog.args.nftId;
         const price = bn(parsedLog.args.price).toString();
         const priceData = await getUSDAndNativePrices(pool.token, price, baseEventParams.timestamp);
@@ -133,7 +133,7 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
           baseEventParams.txHash,
           orderKind
         );
-        const orderId = getOrderId(pool.address, "buy");
+        const orderId = "1"; // getOrderId(pool.address, "buy");
         const taker = (await utils.fetchTransaction(baseEventParams.txHash)).from;
 
         onChainData.fillEventsOnChain.push({

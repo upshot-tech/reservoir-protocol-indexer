@@ -268,6 +268,7 @@ export type EventSubKind =
   | "dittoswap-change-admin-lp-fee"
   | "dittoswap-trade-swapped-tokens-for-nft"
   | "dittoswap-trade-swapped-nft-for-tokens"
+  | "dittoswap-liquidity-created"
   | "dittoswap-liquidity-added"
   | "dittoswap-liquidity-removed"
   | "dittoswap-dittoswap-pool-created"

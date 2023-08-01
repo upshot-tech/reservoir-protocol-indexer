@@ -129,6 +129,23 @@ export const liquidityRemoved: EventData = {
   ]),
 };
 
+export const liquidityCreated: EventData = {
+  kind: "ditto",
+  subKind: "dittoswap-liquidity-created",
+  topic: "",
+  numTopics: 1,
+  abi: new Interface([
+    `event DittoPoolMarketMakeLiquidityCreated(
+      address liquidityProvider,
+      uint256 lpId,
+      uint256[] tokenIds,
+      uint256 tokenDepositAmount,
+      address initialPositionTokenOwner,
+      bytes referrer
+    );`,
+  ]),
+};
+
 /**
  * LPNft (index mint and burn of lp)
  * Not needed for now, since lps changes are covered by liquidityAdded/Removed events.

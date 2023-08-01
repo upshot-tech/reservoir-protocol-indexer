@@ -1,7 +1,7 @@
 export type OrderParams = {
-  pool: string;
+  pool: string; // Is pool correct? Should we also have lpId - or if sell comes in lpIds ?
   nftIds?: string[];
-  lpIds?: string[]; // only required for selling
+  lpIds: string;
   expectedTokenAmount: string; // buy = erc20 inputAmount, sell = minOutput erc20 amount
   recipient?: string; // buy = nftRecipient, sell = erc20 tokenRecipient
   swapData: string; // defaults to 0x0 (of type bytes)
@@ -10,4 +10,12 @@ export type OrderParams = {
     // Array of prices the pool will sell/buy at
     prices: string[];
   };
+  // Validation parameters (for ensuring only the latest event is relevant)
+  txHash: string;
+  txTimestamp: number;
+  txBlock: number;
+  logIndex: number;
+  deadline: number;
+  // Misc options
+  forceRecheck?: boolean;
 };
