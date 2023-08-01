@@ -2,22 +2,22 @@ import { ChainIdToAddress, Network } from "../utils";
 
 export const DittoPoolFactory: ChainIdToAddress = {
   [Network.Ethereum]: "TBD",
-  [Network.EthereumGoerli]: "0x5c5ADaa05a3350582F1228A879003b87Ec6e07c4",
+  [Network.EthereumGoerli]: "0x46A176F13972Eb4558Be9ff095A95389a6a62251",
 };
 
 export const LpNft: ChainIdToAddress = {
   [Network.Ethereum]: "TBD",
-  [Network.EthereumGoerli]: "0xb54052d2B7859688fdc24498Ba998485e4a1c79c",
+  [Network.EthereumGoerli]: "0xd2ef40E77713030C303639ad96871cC08F85dB27",
 };
 
 export const DittoPoolRouter: ChainIdToAddress = {
   [Network.Ethereum]: "TBD",
-  [Network.EthereumGoerli]: "0x2541035Fb28D31cD3385eFb659DE4F946AbB6fd8",
+  [Network.EthereumGoerli]: "0x8EAAd85229964999C458Aa515AB39369ADc2F8B1",
 };
 
 export const DittoPoolRouterRoyalties: ChainIdToAddress = {
   [Network.Ethereum]: "TBD",
-  [Network.EthereumGoerli]: "0x9D561aFFF27270c5c226C78EaB963ea7F6D37550",
+  [Network.EthereumGoerli]: "0xD647A121D96BA0b3e6E71601E50C47F2D1902D04",
 };
 
 export const Test721: ChainIdToAddress = {
