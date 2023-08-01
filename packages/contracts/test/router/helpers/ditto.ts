@@ -5,33 +5,29 @@ import { ethers } from "hardhat";
 import * as Sdk from "../../../../sdk/src";
 import abiErc20 from "../../../../sdk/src/ditto/abis/Erc20.json";
 import abiErc721 from "../../../../sdk/src/ditto/abis/Erc721.json";
-import abiDittoPool from "../../../../sdk/src/ditto/abis/DittoPool.json";
 import abiDittoPoolFactory from "../../../../sdk/src/ditto/abis/DittoPoolFactory.json";
 import { getChainId } from "../../utils";
 
-export const setupDittoListings = async () => {
+export const getDittoContracts = () => {
+  const chainId = getChainId();
 
-    const chainId = getChainId();  
-    
-    const nft: Contract = new Contract(
-        Sdk.Ditto.Addresses.Test721[chainId],
-        abiErc721,
-        ethers.provider 
-    );
+  const nft: Contract = new Contract(
+    Sdk.Ditto.Addresses.Test721[chainId],
+    abiErc721,
+    ethers.provider
+  );
 
-    const token: Contract = new Contract(
-        Sdk.Ditto.Addresses.Test20[chainId],
-        abiErc20,
-        ethers.provider 
-    );
+  const token: Contract = new Contract(
+    Sdk.Ditto.Addresses.Test20[chainId],
+    abiErc20,
+    ethers.provider
+  );
 
-    const dittoPoolFactory: Contract = new Contract(
-        Sdk.Ditto.Addresses.DittoPoolFactory[chainId],
-        abiDittoPoolFactory,
-        ethers.provider 
-    );
-  
-    return {nft, token, dittoPoolFactory};
+  const dittoPoolFactory: Contract = new Contract(
+    Sdk.Ditto.Addresses.DittoPoolFactory[chainId],
+    abiDittoPoolFactory,
+    ethers.provider
+  );
+
+  return { nft, token, dittoPoolFactory };
 };
-
-
