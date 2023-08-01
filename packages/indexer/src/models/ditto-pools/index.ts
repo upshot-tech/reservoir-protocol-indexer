@@ -1,7 +1,7 @@
 import { idb } from "@/common/db";
 import { fromBuffer, toBuffer } from "@/common/utils";
 
-export type DittoswapPool = {
+export type DittoPool = {
   address: string;
   nft: string;
   token: string;
@@ -14,10 +14,10 @@ export type DittoswapPool = {
   adminFeeRecipient: string;
 };
 
-export const saveDittoswapPool = async (dittoswapPool: DittoswapPool) => {
+export const saveDittoPool = async (dittoPool: DittoPool) => {
   await idb.none(
     `
-      INSERT INTO dittoswap_pools (
+      INSERT INTO ditto_pools (
         address,
         nft,
         token,
@@ -43,38 +43,38 @@ export const saveDittoswapPool = async (dittoswapPool: DittoswapPool) => {
       ON CONFLICT DO NOTHING
     `,
     {
-      address: toBuffer(dittoswapPool.address),
-      nft: toBuffer(dittoswapPool.nft),
-      token: toBuffer(dittoswapPool.token),
-      permitter: toBuffer(dittoswapPool.permitter),
-      isPrivatePool: dittoswapPool.isPrivatePool,
-      initialized: dittoswapPool.initialized,
-      template: toBuffer(dittoswapPool.template),
-      fee: dittoswapPool.fee,
-      delta: dittoswapPool.delta,
-      adminFeeRecipient: toBuffer(dittoswapPool.adminFeeRecipient),
+      address: toBuffer(dittoPool.address),
+      nft: toBuffer(dittoPool.nft),
+      token: toBuffer(dittoPool.token),
+      permitter: toBuffer(dittoPool.permitter),
+      isPrivatePool: dittoPool.isPrivatePool,
+      initialized: dittoPool.initialized,
+      template: toBuffer(dittoPool.template),
+      fee: dittoPool.fee,
+      delta: dittoPool.delta,
+      adminFeeRecipient: toBuffer(dittoPool.adminFeeRecipient),
     }
   );
 
-  return dittoswapPool;
+  return dittoPool;
 };
 
-export const getDittoswapPool = async (address: string): Promise<DittoswapPool> => {
+export const getDittoPool = async (address: string): Promise<DittoPool> => {
   const result = await idb.oneOrNone(
     `
       SELECT
-        dittoswap_pools.address,
-        dittoswap_pools.nft,
-        dittoswap_pools.token,
-        dittoswap_pools.permitter,
-        dittoswap_pools.isPrivatePool,
-        dittoswap_pools.initialized,
-        dittoswap_pools.template,
-        dittoswap_pools.fee,
-        dittoswap_pools.delta,
-        dittoswap_pools.adminFeeRecipient
-      FROM dittoswap_pools
-      WHERE dittoswap_pools.nft = $/nft/
+        ditto_pools.address,
+        ditto_pools.nft,
+        ditto_pools.token,
+        ditto_pools.permitter,
+        ditto_pools.isPrivatePool,
+        ditto_pools.initialized,
+        ditto_pools.template,
+        ditto_pools.fee,
+        ditto_pools.delta,
+        ditto_pools.adminFeeRecipient
+      FROM ditto_pools
+      WHERE ditto_pools.nft = $/nft/
     `,
     { address: toBuffer(address) }
   );

@@ -137,10 +137,7 @@ export class Router {
         SudoswapModuleAbi,
         provider
       ),
-      dittoswapModule: new Contract(
-        Addresses.DittoSwapModule[chainId] ?? AddressZero,
-        DittoModuleAbi
-      ),
+      dittoModule: new Contract(Addresses.DittoModule[chainId] ?? AddressZero, DittoModuleAbi),
       sudoswapV2Module: new Contract(
         Addresses.SudoswapV2Module[chainId] ?? AddressZero,
         SudoswapV2ModuleAbi,
@@ -698,7 +695,7 @@ export class Router {
     const seaportV15Details: PerCurrencyListingDetails = {};
     const alienswapDetails: PerCurrencyListingDetails = {};
     const sudoswapDetails: ListingDetails[] = [];
-    const dittoswapDetails: ListingDetails[] = [];
+    const dittoDetails: ListingDetails[] = [];
     const sudoswapV2Details: ListingDetails[] = [];
     const caviarV1Details: ListingDetails[] = [];
     const collectionXyzDetails: ListingDetails[] = [];
@@ -777,7 +774,7 @@ export class Router {
           break;
 
         case "ditto":
-          detailsRef = dittoswapDetails;
+          detailsRef = dittoDetails;
           break;
 
         case "sudoswap-v2":
@@ -1730,13 +1727,13 @@ export class Router {
       }
     }
 
-    // Handle Dittoswap listings
-    if (dittoswapDetails.length) {
-      const orders = dittoswapDetails.map((d) => d.order as Sdk.Ditto.Order);
+    // Handle Ditto listings
+    if (dittoDetails.length) {
+      const orders = dittoDetails.map((d) => d.order as Sdk.Ditto.Order);
       const router = new Sdk.Ditto.Router(this.chainId);
-      const module = this.contracts.dittoswapModule;
+      const module = this.contracts.dittoModule;
 
-      const fees = getFees(dittoswapDetails);
+      const fees = getFees(dittoDetails);
       const price = orders
         .map((order) => bn(order.params.expectedTokenAmount))
         .reduce((a, b) => a.add(b), bn(0));
@@ -1758,11 +1755,11 @@ export class Router {
         tokenOutAmount: totalPrice,
         recipient: module.address,
         refundTo: relayer,
-        details: dittoswapDetails,
+        details: dittoDetails,
         executionIndex: executions.length - 1,
       });
       // Mark the listings as successfully handled
-      for (const { orderId } of dittoswapDetails) {
+      for (const { orderId } of dittoDetails) {
         success[orderId] = true;
         orderIds.push(orderId);
       }
@@ -3078,7 +3075,7 @@ export class Router {
         }
 
         case "ditto": {
-          module = this.contracts.dittoswapModule;
+          module = this.contracts.dittoModule;
           break;
         }
 
@@ -3600,7 +3597,7 @@ export class Router {
 
         case "ditto": {
           const order = detail.order as Sdk.Ditto.Order;
-          const module = this.contracts.dittoswapModule;
+          const module = this.contracts.dittoModule;
           const router = new Sdk.Ditto.Router(this.chainId);
 
           executionsWithDetails.push({

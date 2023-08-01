@@ -6,7 +6,7 @@ import { ethers } from "hardhat";
 
 import { getChainId, getCurrentTimestamp, reset, setupNFTs } from "../../utils";
 
-describe("Dittoswap - Order", () => {
+describe("Ditto - Order", () => {
   const chainId = getChainId();
 
   let deployer: SignerWithAddress;

@@ -1,10 +1,11 @@
-import { Contract } from "@ethersproject/contracts";
+import { Contract, ContractReceipt } from "@ethersproject/contracts";
 import { parseEther } from "@ethersproject/units";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { ethers } from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { expect } from "chai";
 import { setupDittoListings } from "../helpers/ditto";
+import abiDittoPool from "../../../../sdk/src/ditto/abis/DittoPool.json";
 
 /**
  * run with the following command:
@@ -14,12 +15,11 @@ import { setupDittoListings } from "../helpers/ditto";
 describe("DittoModule", () => {
 
     let poolAddress: string;
-    let adminAddress: string;
     let initialTokenBalance: BigNumber;
-    let impersonatedSigner: SignerWithAddress;
     let deployer: SignerWithAddress;
-    let alice: SignerWithAddress;
-    let bob: SignerWithAddress;
+    let marketMaker: SignerWithAddress;
+    const traderAddress = "0x00000000000000000000000000000000DeaDBeef";
+    let trader: SignerWithAddress;
 
     let nft: Contract;
     let token: Contract;
@@ -28,22 +28,21 @@ describe("DittoModule", () => {
   
     let router: Contract;
     let dittoModule: Contract;
+    // random numbers that aren't likely to already have been minted
+    const tokenId00 = ethers.BigNumber.from("0x13376969420123");
+    const tokenId01 = ethers.BigNumber.from("0x13376969420124");
 
-    
     beforeEach(async () => {
 
         setupDittoListings().then((contracts) => {
             nft = contracts.nft;
             token = contracts.token;
-            dittoPool = contracts.dittoPool;
             dittoPoolFactory = contracts.dittoPoolFactory;
         });
 
-        adminAddress = "0x00000000000000000000000000000000DeaDBeef";
-        impersonatedSigner = await ethers.getImpersonatedSigner(adminAddress); 
-        poolAddress = dittoPool.address;
+        trader = await ethers.getImpersonatedSigner(traderAddress); 
 
-        [deployer, alice, bob] = await ethers.getSigners();
+        [deployer, marketMaker] = await ethers.getSigners();
 
         initialTokenBalance = parseEther("1000");
 
@@ -58,32 +57,72 @@ describe("DittoModule", () => {
         const ownerAddress: string = await dittoPoolFactory.owner();
         const ownerSigner: SignerWithAddress = await ethers.getImpersonatedSigner(ownerAddress);
         await dittoPoolFactory.connect(ownerSigner).addRouters([dittoModule.address]);
+
+
+        // mint the NFTs to the market maker
+        await nft.connect(marketMaker).mint(marketMaker.address, tokenId00);
+        await nft.connect(marketMaker).mint(marketMaker.address, tokenId01);
+        await nft.connect(marketMaker).setApprovalForAll(dittoPoolFactory.address, true);
+
+        //create a pool to trade with, with the NFTs deposited into the pool
+
+        const poolTemplate = {
+            isPrivatePool: false,
+            templateIndex: 3, // LINEAR
+            token: token.address,
+            nft: nft.address,
+            feeLp: 0,
+            owner: marketMaker.address,
+            feeAdmin: 0,
+            delta: ethers.utils.parseEther("1.01"),
+            basePrice: ethers.utils.parseEther("1"),
+            nftIdList: [tokenId00, tokenId01],
+            initialTokenBalance: 0,
+            templateInitData: "0x",
+            referrer: "0x"
+        }
+        const poolManagerTemplate = {
+            templateIndex: ethers.constants.MaxUint256,
+            templateInitData: "0x",
+        }
+        const permitterTemplate = {
+            templateIndex: ethers.constants.MaxUint256,
+            templateInitData: "0x",
+            liquidityDepositPermissionData: "0x",
+        }
+
+        const creation = await dittoPoolFactory.connect(marketMaker).createDittoPool(poolTemplate, poolManagerTemplate, permitterTemplate);
+        const result: ContractReceipt = await creation.wait();
+        result.events!.forEach((event) => {
+            if(event.event === "DittoPoolFactoryDittoPoolCreated"){
+                poolAddress = event.args!.dittoPool;
+            }
+        });
+        dittoPool = new ethers.Contract(poolAddress, abiDittoPool, trader);
     });
 
     it("Accept multiple listings", async () => {
 
-        const tokenId00 = 1;
         await nft.ownerOf(tokenId00).then((owner: any) => {
             expect(owner).to.eq(poolAddress);
         });
-        const tokenId01 = 2;
         await nft.ownerOf(tokenId01).then((owner: any) => {
             expect(owner).to.eq(poolAddress);
         });
 
-        await token.connect(impersonatedSigner).mint(adminAddress, initialTokenBalance);
-        await token.balanceOf(adminAddress).then((balance: BigNumber) => {
+        await token.connect(trader).mint(traderAddress, initialTokenBalance);
+        await token.balanceOf(traderAddress).then((balance: BigNumber) => {
             expect(balance).to.equal(initialTokenBalance);
         });
-        let approve = await token.connect(impersonatedSigner).approve(dittoModule.address, initialTokenBalance);
+        let approve = await token.connect(trader).approve(dittoModule.address, initialTokenBalance);
         await approve.wait();
 
         // Fetch the current price
         let result = await dittoPool.getBuyNftQuote(2, '0x');
         let inputValue = result[3];
 
-        const fillTo: string = adminAddress;
-        const refundTo: string = adminAddress;
+        const fillTo: string = traderAddress;
+        const refundTo: string = traderAddress;
         const revertIfIncomplete: boolean = false;
         const tokenAddress: string = token.address;
         const amountPayment: BigNumber = inputValue;

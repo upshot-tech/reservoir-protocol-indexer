@@ -1,6 +1,6 @@
 -- Up Migration
 
-CREATE TABLE "dittoswap_pools" (
+CREATE TABLE "ditto_pools" (
   "address" BYTEA NOT NULL,
   "nft" BYTEA NOT NULL, 
   "token" BYTEA NOT NULL, 
@@ -13,12 +13,12 @@ CREATE TABLE "dittoswap_pools" (
   "adminFeeRecipient" BYTEA NOT NULL
 );
 
-ALTER TABLE "dittoswap_pools"
-  ADD CONSTRAINT "dittoswap_pools_pk"
+ALTER TABLE "ditto_pools"
+  ADD CONSTRAINT "ditto_pools_pk"
   PRIMARY KEY ("address");
 
-ALTER TYPE "order_kind_t" ADD VALUE 'dittoswap';
+ALTER TYPE "order_kind_t" ADD VALUE 'ditto';
 
 -- Down Migration
 
-DROP TABLE "dittoswap_pools";
+DROP TABLE "ditto_pools";

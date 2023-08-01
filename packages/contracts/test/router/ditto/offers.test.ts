@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 import { BigNumber } from "@ethersproject/bignumber";
 import { expect } from "chai";
 import { setupDittoListings } from "../helpers/ditto";
-import abiDittoPool from "../../../../sdk/src/ditto/abis/Pool.json";
+import abiDittoPool from "../../../../sdk/src/ditto/abis/DittoPool.json";
 
 /**
  * run with the following command:
