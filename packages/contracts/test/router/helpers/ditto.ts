@@ -25,19 +25,13 @@ export const setupDittoListings = async () => {
         ethers.provider 
     );
 
-    const dittoPool: Contract = new Contract(
-        Sdk.Ditto.Addresses.Pool[chainId],
-        abiDittoPool,
-        ethers.provider 
-    );
-
     const dittoPoolFactory: Contract = new Contract(
-        Sdk.Ditto.Addresses.PoolFactory[chainId],
+        Sdk.Ditto.Addresses.DittoPoolFactory[chainId],
         abiDittoPoolFactory,
         ethers.provider 
     );
   
-    return {nft, token, dittoPool, dittoPoolFactory};
+    return {nft, token, dittoPoolFactory};
 };
 
 

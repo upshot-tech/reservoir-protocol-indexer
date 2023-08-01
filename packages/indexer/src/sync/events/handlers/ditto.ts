@@ -2,9 +2,9 @@ import { bn } from "@/common/utils";
 import { getEventData } from "@/events-sync/data";
 import { EnhancedEvent, OnChainData } from "@/events-sync/handlers/utils";
 import * as utils from "@/events-sync/utils";
-// import { getOrderId } from "@/orderbook/orders/dittoswap";
+// import { getOrderId } from "@/orderbook/orders/ditto";
 import { getUSDAndNativePrices } from "@/utils/prices";
-import * as dittoswap from "@/utils/dittoswap";
+import * as ditto from "@/utils/ditto";
 
 export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChainData) => {
   /**
@@ -19,10 +19,10 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
     const eventData = getEventData([subKind])[0];
 
     switch (subKind) {
-      case "dittoswap-trade-swapped-nft-for-tokens": {
+      case "ditto-trade-swapped-nft-for-tokens": {
         const parsedLog = eventData.abi.parseLog(log);
 
-        const pool = await dittoswap.getPoolDetails(baseEventParams.address);
+        const pool = await ditto.getPoolDetails(baseEventParams.address);
         if (!pool) {
           break;
         }
@@ -77,7 +77,7 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
         });
 
         onChainData.fillInfos.push({
-          context: `dittoswap-${pool.nft}-${tokenId}-${baseEventParams.txHash}`,
+          context: `ditto-${pool.nft}-${tokenId}-${baseEventParams.txHash}`,
           orderSide: "sell",
           contract: pool.nft,
           tokenId,
@@ -101,10 +101,10 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
         break;
       }
 
-      case "dittoswap-trade-swapped-tokens-for-nft": {
+      case "ditto-trade-swapped-tokens-for-nft": {
         const parsedLog = eventData.abi.parseLog(log);
 
-        const pool = await dittoswap.getPoolDetails(baseEventParams.address);
+        const pool = await ditto.getPoolDetails(baseEventParams.address);
         if (!pool) {
           break;
         }
@@ -159,7 +159,7 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
         });
 
         onChainData.fillInfos.push({
-          context: `dittoswap-${pool.nft}-${tokenId}-${baseEventParams.txHash}`,
+          context: `ditto-${pool.nft}-${tokenId}-${baseEventParams.txHash}`,
           orderSide: "buy",
           contract: pool.nft,
           tokenId,

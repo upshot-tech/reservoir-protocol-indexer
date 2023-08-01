@@ -2,10 +2,10 @@ import { Interface } from "@ethersproject/abi";
 import { Contract } from "@ethersproject/contracts";
 
 import { baseProvider } from "@/common/provider";
-import { getDittoswapPool, saveDittoswapPool } from "@/models/dittoswap-pools";
+import { getDittoPool, saveDittoPool } from "@/models/ditto-pools";
 
 export const getPoolDetails = async (address: string) =>
-  getDittoswapPool(address).catch(async () => {
+  getDittoPool(address).catch(async () => {
     const iface = new Interface([
       "function nft() external view returns (address)",
       "function token() external view returns (address)",
@@ -30,7 +30,7 @@ export const getPoolDetails = async (address: string) =>
       const adminFeeRecipient = (await pool.adminFeeRecipient()).toLowerCase();
       const fee = await pool.fee();
 
-      return saveDittoswapPool({
+      return saveDittoPool({
         address,
         nft,
         token,

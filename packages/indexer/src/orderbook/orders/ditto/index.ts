@@ -22,7 +22,7 @@ import {
 } from "@/orderbook/orders/utils";
 // import * as tokenSet from "@/orderbook/token-sets";
 // import * as royalties from "@/utils/royalties";
-// import * as ditto from "@/utils/dittoswap";
+// import * as ditto from "@/utils/ditto";
 
 import {
   orderUpdatesByIdJob,
@@ -685,7 +685,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
   const limit = pLimit(20);
   await Promise.all(orderInfos.map((orderInfo) => limit(() => handleOrder(orderInfo))));
 
-  logger.info("dittoswap-debug", JSON.stringify(results));
+  logger.info("ditto-debug", JSON.stringify(results));
 
   if (orderValues.length) {
     const columns = new pgp.helpers.ColumnSet(

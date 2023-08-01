@@ -11,7 +11,7 @@ export const offChainCheck = async (id: string) => {
         orders.token_set_id
       FROM orders
       WHERE orders.id = $/id/
-        AND orders.kind = 'dittoswap'
+        AND orders.kind = 'ditto'
     `,
     { id }
   );
