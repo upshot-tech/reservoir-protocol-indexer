@@ -11,7 +11,35 @@ export const poolCreated: EventData = {
   topic: "0x47c73863168b3080e0e387c11995820f90746ddb0d566efa696c327137a601c2",
   numTopics: 1,
   abi: new Interface([
-    `event DittoPoolFactoryDittoPoolCreated((bool,uint256,address,address,uint96,address,uint96,uint128,uint128,uint256[],uint256,bytes,bytes),address,(uint256,bytes),address,(uint256,bytes,bytes),address,bool,bytes)`,
+    `event DittoPoolFactoryDittoPoolCreated(
+      (
+        bool isPrivatePool,
+        uint256 templateIndex,
+        address token,
+        address nft,
+        uint96 feeLp,
+        address owner,
+        uint96 feeAdmin,
+        uint128 delta,
+        uint128 basePrice,
+        uint256[] nftIdList,
+        uint256 initialTokenBalance,
+        bytes templateInitData,
+        bytes referrer
+      ) poolTemplate,
+      address dittoPool,
+      (
+        uint256 templateIndex,
+        bytes templateInitData
+      ) poolManagerTemplate,
+      address poolManager,
+      (
+        uint256 templateIndex,
+        bytes templateInitData,
+        bytes liquidityDepositPermissionData
+      ) permitterTemplate,
+      address permitter
+      )`,
   ]),
 };
 

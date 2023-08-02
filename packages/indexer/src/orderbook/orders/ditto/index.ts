@@ -56,7 +56,7 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
 
   const handleOrder = async ({ orderParams }: OrderInfo) => {
     // try {
-    //   const pool = await ditto.getPoolDetails(orderParams.pool);
+    // const pool = await ditto.getPoolDetails(orderParams.pool);
     //   if (!pool) {
     //     throw new Error("Could not fetch pool details");
     //   }
