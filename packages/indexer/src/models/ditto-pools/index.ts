@@ -9,8 +9,8 @@ export type DittoPool = {
   isPrivatePool: boolean;
   initialized: boolean;
   template: string;
-  fee: number;
-  delta: number;
+  fee: string;
+  delta: string;
   adminFeeRecipient: string;
 };
 
@@ -22,12 +22,12 @@ export const saveDittoPool = async (dittoPool: DittoPool) => {
         nft,
         token,
         permitter,
-        isPrivatePool,
+        is_private_pool,
         initialized,
         template,
         fee,
         delta,
-        adminFeeRecipient
+        admin_fee_recipient
       ) VALUES (
         $/address/,
         $/nft/,
@@ -55,7 +55,6 @@ export const saveDittoPool = async (dittoPool: DittoPool) => {
       adminFeeRecipient: toBuffer(dittoPool.adminFeeRecipient),
     }
   );
-
   return dittoPool;
 };
 
@@ -67,14 +66,14 @@ export const getDittoPool = async (address: string): Promise<DittoPool> => {
         ditto_pools.nft,
         ditto_pools.token,
         ditto_pools.permitter,
-        ditto_pools.isPrivatePool,
+        ditto_pools.is_private_pool,
         ditto_pools.initialized,
         ditto_pools.template,
         ditto_pools.fee,
         ditto_pools.delta,
-        ditto_pools.adminFeeRecipient
+        ditto_pools.admin_fee_recipient
       FROM ditto_pools
-      WHERE ditto_pools.nft = $/nft/
+      WHERE ditto_pools.address = $/address/
     `,
     { address: toBuffer(address) }
   );

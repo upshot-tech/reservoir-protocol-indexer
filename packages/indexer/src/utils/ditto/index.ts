@@ -3,6 +3,7 @@ import { Contract } from "@ethersproject/contracts";
 
 import { baseProvider } from "@/common/provider";
 import { getDittoPool, saveDittoPool } from "@/models/ditto-pools";
+import { logger } from "@/common/logger";
 
 export const getPoolDetails = async (address: string) =>
   getDittoPool(address).catch(async () => {
@@ -26,9 +27,10 @@ export const getPoolDetails = async (address: string) =>
       const isPrivatePool = await pool.isPrivatePool();
       const initialized = await pool.initialized();
       const template = (await pool.template()).toLowerCase();
-      const delta = await pool.delta();
+      const delta = (await pool.delta()).toString();
+      // const delta = deltaBig.toNumber()
       const adminFeeRecipient = (await pool.adminFeeRecipient()).toLowerCase();
-      const fee = await pool.fee();
+      const fee = (await pool.fee()).toString();
 
       return saveDittoPool({
         address,
@@ -42,7 +44,8 @@ export const getPoolDetails = async (address: string) =>
         delta,
         adminFeeRecipient,
       });
-    } catch {
+    } catch (e) {
       // Skip any errors
+      logger.info("Ditto Pools", `Skipping any errors on pool creation. ERROR: ${e}`);
     }
   });

@@ -5,12 +5,12 @@ CREATE TABLE "ditto_pools" (
   "nft" BYTEA NOT NULL, 
   "token" BYTEA NOT NULL, 
   "permitter" BYTEA NOT NULL, 
-  "isPrivatePool" BOOLEAN NOT NULL,
+  "is_private_pool" BOOLEAN NOT NULL,
   "initialized" BOOLEAN NOT NULL,
   "template" BYTEA NOT NULL,
-  "fee" INTEGER, -- bps - can be null
-  "delta" DECIMAL,
-  "adminFeeRecipient" BYTEA NOT NULL
+  "fee" NUMERIC(78, 0), -- bps - can be null
+  "delta" NUMERIC(78, 0),
+  "admin_fee_recipient" BYTEA NOT NULL
 );
 
 ALTER TABLE "ditto_pools"

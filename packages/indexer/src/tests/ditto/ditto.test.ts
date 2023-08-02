@@ -2,15 +2,23 @@ import { config as dotEnvConfig } from "dotenv";
 dotEnvConfig();
 
 // import { Ditto } from "@reservoir0x/sdk";
+import * as ditto from "@/utils/ditto";
 import * as orders from "@/orderbook/orders";
 import { logger } from "@/common/logger";
 import { getOrder } from "../utils/order";
 
 describe("DittoTest", () => {
+  test("Create Pool", async () => {
+    const poolAddress = "0x879AF4c23f1d005cAb4bf2518DEfB27B32B8a65c";
+    const pool = await ditto.getPoolDetails(poolAddress);
+    expect(pool).toBeDefined();
+    expect(pool?.address?.toLowerCase()).toBe(poolAddress.toLowerCase());
+  });
+
   test("Create Order", async () => {
     const params = {
       pool: "1",
-      nftIds: [],
+      nftIds: [""],
       lpIds: "1",
       expectedTokenAmount: "1",
       recipient: "",
