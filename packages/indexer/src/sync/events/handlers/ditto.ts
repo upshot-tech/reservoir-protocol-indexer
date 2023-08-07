@@ -19,6 +19,11 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
     const eventData = getEventData([subKind])[0];
 
     switch (subKind) {
+      case "ditto-pool-created": {
+        // Implementation deferred: pool can be taken upon reception of a lp
+        break;
+      }
+
       case "ditto-trade-swapped-nft-for-tokens": {
         const parsedLog = eventData.abi.parseLog(log);
 
