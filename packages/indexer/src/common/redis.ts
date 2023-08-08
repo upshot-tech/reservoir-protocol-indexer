@@ -14,7 +14,7 @@ export const redis = new Redis(config.redisUrl, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
   // To avoid annoying timeout errors
-  connectTimeout: process.env.LOCAL_TESTING ? 1000 * 1000 : undefined,
+  connectTimeout: Number(process.env.LOCAL_TESTING) ? 1000 * 1000 : undefined,
 });
 
 export const redisSubscriber = new Redis(config.redisUrl, {
