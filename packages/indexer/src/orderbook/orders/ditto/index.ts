@@ -85,10 +85,10 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
       }
 
       //   // TODO - Ditto : needed?
-      //   // Force recheck at most once per hour
-      //   const recheckCondition = orderParams.forceRecheck
-      //     ? `AND orders.updated_at < to_timestamp(${orderParams.txTimestamp - 3600})`
-      //     : `AND lower(orders.valid_between) < to_timestamp(${orderParams.txTimestamp})`;
+      // Force recheck at most once per hour
+      // const recheckCondition = orderParams.forceRecheck
+      //   ? `AND orders.updated_at < to_timestamp(${orderParams.txTimestamp - 3600})`
+      //   : `AND lower(orders.valid_between) < to_timestamp(${orderParams.txTimestamp})`;
 
       //   const poolContract = new Contract(
       //     pool.address,
@@ -160,22 +160,23 @@ export const save = async (orderInfos: OrderInfo[]): Promise<SaveResult[]> => {
         const lp = orderParams.lpIds;
         const id = getOrderId(lp);
 
-        //     if (!pool.initialized) {
-        //       await idb.none(
-        //         `
-        //           UPDATE orders SET
-        //             fillability_status = 'cancelled',
-        //             expiration = to_timestamp(${orderParams.deadline}),
-        //             block_number = $/blockNumber/,
-        //             log_index = $/logIndex/,
-        //             updated_at = now()
-        //           WHERE orders.id = $/id/
-        //             ${recheckCondition}
-        //         `,
-        //         { id, blockNumber: orderParams.txBlock, logIndex: orderParams.logIndex }
-        //       );
-        //     } else {
-        //       const tokenBalance = await baseProvider.getBalance(pool.address);
+        // if (!pool.initialized) {
+        //   logger.info("ditto-orderbook", "Pool not initialized, cancelling order.")
+        //   await idb.none(
+        //     `
+        //       UPDATE orders SET
+        //         fillability_status = 'cancelled',
+        //         expiration = to_timestamp(${orderParams.deadline}),
+        //         block_number = $/blockNumber/,
+        //         log_index = $/logIndex/,
+        //         updated_at = now()
+        //       WHERE orders.id = $/id/
+        //         ${recheckCondition}
+        //     `,
+        //     { id, blockNumber: orderParams.txBlock, logIndex: orderParams.logIndex }
+        //   );
+        // } else {
+        // const tokenBalance = await baseProvider.getBalance(pool.address);
 
         //       let tmpPriceList: (BigNumber | undefined)[] = Array.from(
         //         { length: POOL_ORDERS_MAX_PRICE_POINTS_COUNT },

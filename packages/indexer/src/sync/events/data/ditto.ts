@@ -130,7 +130,7 @@ export const tradeSwappedNftForTokens: EventData = {
 export const liquidityAdded: EventData = {
   kind: "ditto",
   subKind: "ditto-liquidity-added",
-  topic: "",
+  topic: "0xb1d9cfd64a93322c0316a0dadc860ee029249dd9973d46b86e5e61f4f7b904dc",
   numTopics: 1,
   abi: new Interface([
     `event DittoPoolMarketMakeLiquidityAdded(
@@ -146,7 +146,7 @@ export const liquidityAdded: EventData = {
 export const liquidityRemoved: EventData = {
   kind: "ditto",
   subKind: "ditto-liquidity-removed",
-  topic: "",
+  topic: "ef9403598b368d35d44d28059f051e8db36e2b8ae1c4b4cb4b82b496e012b53b",
   numTopics: 1,
   abi: new Interface([
     `event DittoPoolMarketMakeLiquidityRemoved(
@@ -160,7 +160,7 @@ export const liquidityRemoved: EventData = {
 export const liquidityCreated: EventData = {
   kind: "ditto",
   subKind: "ditto-liquidity-created",
-  topic: "",
+  topic: "0xdab52304e77af02015af556a2f4cd9e8f3e771376d81b006a2723a8a5feac69b",
   numTopics: 1,
   abi: new Interface([
     `event DittoPoolMarketMakeLiquidityCreated(

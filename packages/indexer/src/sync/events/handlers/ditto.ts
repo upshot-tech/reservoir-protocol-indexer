@@ -5,6 +5,7 @@ import * as utils from "@/events-sync/utils";
 // import { getOrderId } from "@/orderbook/orders/ditto";
 import { getUSDAndNativePrices } from "@/utils/prices";
 import * as ditto from "@/utils/ditto";
+import { logger } from "@/common/logger";
 
 export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChainData) => {
   /**
@@ -21,6 +22,56 @@ export const handleEvents = async (events: EnhancedEvent[], onChainData: OnChain
     switch (subKind) {
       case "ditto-pool-created": {
         // Implementation deferred: pool can be taken upon reception of a lp
+        break;
+      }
+
+      case "ditto-liquidity-created": {
+        logger.info("ditto-handlers", `base event params: ${baseEventParams}`);
+        const pool = await ditto.getPoolDetails(baseEventParams.address);
+        if (!pool) {
+          break;
+        }
+
+        // const { args } = eventData.abi.parseLog(log);
+        // logger.info("ditto-handlers", `logs: ${log}`)
+        // const tokenIds = args.tokenIds.map(String);
+        // const lpId = args.lpId.map(String);
+        // const tokenDepositAmount = String(args.tokenDepositAmount)
+        // const initialPositionTokenOwner = String(args.initialPositionTokenOwner)
+        // const referrer = String(args.referrer) // TODO add
+        const tokenIds = ["1", "2"];
+        const lpId = "2";
+        const tokenDepositAmount = "10000000000000000";
+        const initialPositionTokenOwner =
+          "0000000000000000000000000000000000000000000000000000000000000000"; // "String(args.initialPositionTokenOwner)
+
+        const orderParams = {
+          pool: baseEventParams.address,
+          type: "new-order",
+          nftIds: tokenIds, // eventData.nftIds,
+          lpIds: lpId, // eventData.lpId,
+          expectedTokenAmount: tokenDepositAmount, //
+          recipient: initialPositionTokenOwner, // buy = nftRecipient, sell = erc20 tokenRecipient
+          swapData: "", // defaults to 0x0 (of type bytes)
+          extra: {
+            // Array of prices the pool will sell/buy at
+            prices: [],
+          },
+          // tx info
+          txHash: baseEventParams.txHash,
+          txTimestamp: baseEventParams.timestamp,
+          txBlock: baseEventParams.block,
+          logIndex: baseEventParams.logIndex,
+        };
+
+        onChainData.orders.push({
+          kind: "ditto",
+          info: {
+            orderParams: orderParams,
+            metadata: {},
+          },
+        });
+
         break;
       }
 

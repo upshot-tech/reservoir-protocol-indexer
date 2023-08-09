@@ -475,6 +475,7 @@ const allEventData = [
   ditto.changeAdminChangedLpFee,
   ditto.tradeSwappedTokensForNft,
   ditto.tradeSwappedNftForTokens,
+  ditto.liquidityCreated,
   ditto.liquidityAdded,
   ditto.liquidityRemoved,
   caviarV1.create,

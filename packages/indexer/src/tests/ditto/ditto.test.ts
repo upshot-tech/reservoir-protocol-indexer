@@ -6,13 +6,41 @@ import * as ditto from "@/utils/ditto";
 import * as orders from "@/orderbook/orders";
 import { logger } from "@/common/logger";
 import { getOrder } from "../utils/order";
+import { handleEvents } from "@/events-sync/handlers/ditto";
+import { parseTranscation } from "../utils/events";
 
 const poolAddress = "0x879AF4c23f1d005cAb4bf2518DEfB27B32B8a65c";
 const token = "0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6";
 const nft = "0x2afbae4b3fd9c1088de2e05aff6b5f8adb40c387";
-// const fee = "20000000000000000"
 
 describe("DittoTest", () => {
+  test("Event Parsing", async () => {
+    const txLiquidityAdded = "0xea6eaaf5679dfa0f5681efae5bd59ee270f2ea331973bc7c417f89ba28aefdbc";
+    // const events = await getEnhancedEventsFromTx(txLiquidityAdded);
+    const transactionData = await parseTranscation(txLiquidityAdded);
+    const events = transactionData.events;
+    const onChainData = transactionData.allOnChainData;
+    logger.info(
+      "ditto-event-parsing",
+      `Events     : size: ${events.length}  JSON: ${JSON.stringify(events)}`
+    );
+    logger.info(
+      "ditto-event-parsing",
+      `OnChainData: size: ${onChainData.length}  JSON: ${JSON.stringify(onChainData)}`
+    );
+
+    for (let index = 0; index < events.length; index++) {
+      if (events[index].kind === "ditto") {
+        logger.info("ditto-event-parsing", `Ditto Events: ${JSON.stringify(events[index])}`);
+        const result = await handleEvents([events[index]], onChainData[0]);
+        logger.info("ditto-event-parsing", `Result: ${JSON.stringify(result)}`);
+        logger.info("ditto-event-parsing", `OnChainData: ${JSON.stringify(onChainData[0].orders)}`);
+        expect(onChainData[0].orders.length).toBe(1);
+        expect(onChainData[0].orders[0].kind).toBe("ditto");
+      }
+    }
+  });
+
   test("Create Pool", async () => {
     const pool = await ditto.getPoolDetails(poolAddress);
     logger.info(
@@ -28,14 +56,14 @@ describe("DittoTest", () => {
   test("Create Order", async () => {
     const params = {
       pool: "0x879AF4c23f1d005cAb4bf2518DEfB27B32B8a65c",
-      nftIds: [""],
+      nftIds: ["1", "2"],
       lpIds: "1",
       expectedTokenAmount: "1",
       recipient: "",
       swapData: "",
       permitterData: "",
       extra: {
-        prices: ["100000000000000000"],
+        prices: ["100000000000000000", "200000000000000000"],
       },
       txHash: "tx_hash",
       txTimestamp: 1690710927,
