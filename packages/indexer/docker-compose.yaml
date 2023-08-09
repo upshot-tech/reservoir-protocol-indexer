@@ -7,6 +7,8 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
+    volumes:
+      - ../../postgres:/var/lib/postgresql/data
     networks:
       - local
     ports:
@@ -21,7 +23,7 @@ services:
       - 6379:6379
 
   rabbitmq:
-    image: ipelegi/rabbitmq:latest
+    image: rabbitmq-custom
     container_name: 'rabbitmq'
     environment:
       - RABBITMQ_DEFAULT_USER=guest

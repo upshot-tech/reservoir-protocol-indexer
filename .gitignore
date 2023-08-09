@@ -2,7 +2,6 @@
 node_modules
 
 # Secrets
-.env
 .env.testnet
 
 # Build

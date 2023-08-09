@@ -51,6 +51,7 @@ export const extractEventsBatches = async (
         let batchIndex = null;
 
         for (const event of events) {
+          //          logger.info("tyler tyler", event.subKind.toString())
           if (!kindToEvents.has(event.kind)) {
             kindToEvents.set(event.kind, []);
           }
