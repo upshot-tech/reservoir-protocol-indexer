@@ -24,7 +24,7 @@ const normalize = (order: Types.OrderParams): Types.OrderParams => {
   return {
     pool: s(order.pool),
     nftIds: order.nftIds ? order.nftIds.map(s) : undefined,
-    lpId: order.lpId ? s(order.lpId) : undefined,
+    lpIds: order.lpIds ? s(order.lpIds) : undefined,
     expectedTokenAmount: s(order.expectedTokenAmount),
     recipient: lc(s(order.recipient)),
     swapData: s(order.swapData),

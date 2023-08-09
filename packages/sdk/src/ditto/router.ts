@@ -64,7 +64,7 @@ export class Router {
       to: this.contract.address,
       data: this.contract.interface.encodeFunctionData("swapNftsForTokens", [
         order.params.nftIds,
-        order.params.lpId!,
+        order.params.lpIds!,
         order.params.extra.prices[0] ?? 0,
         options?.recipient ?? taker,
         order.params.permitterData ?? "0x0",
