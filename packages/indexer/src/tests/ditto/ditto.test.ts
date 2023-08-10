@@ -14,7 +14,7 @@ const token = "0xb4fbf271143f4fbf7b91a5ded31805e42b2208d6";
 const nft = "0x2afbae4b3fd9c1088de2e05aff6b5f8adb40c387";
 
 describe("DittoTest", () => {
-  test("Event Parsing", async () => {
+  test("Handle Event - Liquidity Added", async () => {
     const txLiquidityAdded = "0xea6eaaf5679dfa0f5681efae5bd59ee270f2ea331973bc7c417f89ba28aefdbc";
     // const events = await getEnhancedEventsFromTx(txLiquidityAdded);
     const transactionData = await parseTranscation(txLiquidityAdded);
